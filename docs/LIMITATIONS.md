@@ -3,15 +3,31 @@
 What the current results do not support, stated plainly so a reviewer does not
 have to find it. Generation G3 (per-planet models, 2026-08-02 onward).
 
-## 1. Every headline number is single-seed
+## 1. The economics table is still single-seed
 
-**Status: known gap, deliberately not closed yet. Disclose as a point estimate.**
+**Status: half closed (2026-09-09). The C1 experiments are replicated; the
+economics table is not.**
 
-The pruning economics table, the normalisation-collapse ablation, the tree-assist
-result and the per-planet held-out metrics are all one run at seed 42. The split
-is a deterministic function of `(n, seed)` (`src/ml/splits.py`), so re-running
+**Closed.** The normalisation-collapse ablation and the baseline-invariance
+check now run at seeds 0, 1, 2, 3 and 42 (`reports/multiseed_paper/`, see
+`RESEARCH_LEDGER.md`, "Multi-Seed Replication of C1"). Findings: the signal
+compression is essentially seed-independent (0.00222–0.00232 on Venus, a 5%
+spread against a 335x compression), the collapse recurs on **4 of 5 seeds** —
+not 5 of 5, do not write "every seed" — and the tree's blindness replicates on
+all 60 (seed, target, condition) runs at AUC 0.9989–1.0000.
+
+**Still open.** The pruning economics table, the tree-assist result and the
+per-planet held-out metrics are all one run at seed 42. The split is a
+deterministic function of `(n, seed)` (`src/ml/splits.py`), so re-running
 reproduces them exactly — which is reproducibility, not stability. It says
-nothing about how much the numbers move under a different partition.
+nothing about how much those numbers move under a different partition.
+
+`src/ml/multi_seed_economics.py` exists but does not reproduce the headline
+protocol: it uses different XGBoost hyperparameters (100 trees at depth 4
+against `prune_economics.py`'s 300 at depth 5), orders missions by `sim_id`
+rather than joining on `mission_ids`, and covers T0 only — a multi-seed T40
+number needs the per-planet models retrained per seed. Do not quote its output
+as an interval around the published table.
 
 What exists already: the *grouped* audits (LOTO, parameter-corridor) were run
 across five seeds and reported std 0.000 everywhere, but those splits are
@@ -19,11 +35,12 @@ deterministic by target identity, so the seed only perturbs training noise. The
 5-seed XGBoost confidence intervals in `reports/baselines/formal_ablation.json`
 are genuinely seed-dependent and are the model for what the G3 table needs.
 
-What closing it costs: per-planet training is ~50 s/planet on an RTX 4060, so 5
-seeds x 7 targets is roughly an hour of training plus the economics re-run. It is
-cheap. It is not done.
+What closing the rest costs: per-planet training is ~50 s/planet on an RTX 4060,
+so 5 seeds x 7 targets is roughly an hour of training plus the economics re-run.
+The C1 sweep above took about 40 minutes for 4 extra seeds, which is the honest
+estimate for the remainder.
 
-Until it is: report single-seed figures as point estimates. Do not attach a
+Until it is: report the economics figures as point estimates. Do not attach a
 confidence interval to them, and do not describe the ±0.000 from the grouped
 audits as if it applied to the headline table.
 
@@ -92,9 +109,11 @@ from an 80,000-mission eight-target generation.
 
 The tree assist fixed Uranus `surface_impact` (sequence recall 0.000 → 1.000),
 but the underlying defect is not understood: the sequence model could not reach a
-signal demonstrably present in its own input, and mode-balanced resampling up to
-45x did not move it. Whether that is optimisation, architecture or objective is
-open (WP3). The fix is a fusion, not an explanation.
+signal demonstrably present in its own input, and mode-balanced resampling did
+not move it — 19.2x relative to uniform sampling, 45x relative to the majority
+failure mode; state which denominator you mean. Whether that is optimisation,
+architecture or objective is open (WP3). The fix is a fusion, not an
+explanation.
 
 ## 9. Superseded modules retained for provenance
 

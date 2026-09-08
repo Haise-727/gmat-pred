@@ -122,6 +122,15 @@ def document() -> list[tuple[str, object]]:
     tree_spread = (max(inv["tree_auc_spread_across_conditions"].values())
                    if inv else None)
     n_seeds = 1 + len(ms_norm)
+    # How often the worst target actually collapsed, across every replication.
+    # The abstract and the limitations both need it, and "replicated across N
+    # seeds" would overstate a 4-of-5 result.
+    _reps_all = ([norm] + ms_norm) if norm else []
+    _wflags = [bool(next((q for q in r["paired"]
+                          if q["planet"] == worst.get("planet")), {})
+                    .get("collapsed_grouped"))
+               for r in _reps_all] if worst else []
+    n_collapse_seeds = sum(_wflags)
 
     add("title", {"title": TITLE, "authors": AUTHORS,
                   "affiliation": AFFILIATION})
@@ -158,12 +167,9 @@ def document() -> list[tuple[str, object]]:
         # Only claim what was actually re-run. The three experiments are
         # replicated independently, and a blanket "all results" would overclaim
         # whenever one of them has not been swept.
-        + (f" The collapse and the baseline's blindness to it are replicated "
-           f"across {n_seeds} seeds."
-           if ms_norm and ms_inv and not ms_rare else
-           f" All three experiments are replicated across {n_seeds} seeds."
-           if ms_norm and ms_inv and ms_rare else
-           f" The collapse is replicated across {n_seeds} seeds."
+        + (f" Across {n_seeds} seeds the compression is identical and the "
+           f"collapse recurs on {n_collapse_seeds} of them, so it is a property "
+           f"of the preprocessing rather than of one unlucky initialisation."
            if ms_norm else ""))
 
     add("keywords", KEYWORDS)
@@ -632,44 +638,97 @@ def document() -> list[tuple[str, object]]:
                        f"as an interval. With n = {n_seeds} the spread of the "
                        f"raw points is the honest summary.",
         })
-        # The interpretation, computed rather than asserted: which targets
-        # collapsed on which seeds, and how much the healthy condition moved.
+        # The interpretation, computed rather than asserted. Written to be
+        # correct whatever the seeds turn out to say: an earlier version of
+        # this paragraph hardcoded "collapses on every seed", which was true
+        # at three seeds and false at five.
         import statistics as _st
-        always, never = [], []
-        for p in paired:
-            hits = [next((q for q in rep["paired"] if q["planet"] == p["planet"]),
-                         None) for rep in reps]
-            flags = [bool(h.get("collapsed_grouped")) for h in hits if h]
-            if flags and all(flags):
-                always.append(p["planet"].capitalize())
-            elif flags and not any(flags):
-                never.append(p["planet"].capitalize())
-        ts_sds = []
-        for p in paired:
-            vals = [h["val_auc_per-timestep"] for h in
-                    (next((q for q in rep["paired"]
-                           if q["planet"] == p["planet"]), None) for rep in reps)
-                    if h]
-            if len(vals) > 1:
-                ts_sds.append(_st.stdev(vals))
+
+        def series(planet, key):
+            out = []
+            for rep in reps:
+                h = next((q for q in rep["paired"] if q["planet"] == planet), None)
+                if h:
+                    out.append(h[key])
+            return out
+
+        wp = worst["planet"]
+        w_sig = series(wp, "signal_grouped")
+        w_std = series(wp, "pred_std_grouped")
+        w_auc = series(wp, "val_auc_grouped")
+        w_flags = series(wp, "collapsed_grouped")
+        n_coll = sum(bool(x) for x in w_flags)
+        n_rep = len(w_flags)
+        coll_std = [v for v, f in zip(w_std, w_flags) if f]
+        surv_std = [v for v, f in zip(w_std, w_flags) if not f]
+        healthy_std = series(wp, "pred_std_per-timestep")
+        ts_sds = [_st.stdev(series(p["planet"], "val_auc_per-timestep"))
+                  for p in paired
+                  if len(series(p["planet"], "val_auc_per-timestep")) > 1]
+        never = [p["planet"].capitalize() for p in paired
+                 if not any(series(p["planet"], "collapsed_grouped"))]
+
         add("p",
-            f"The answer is that it is not a seed artifact. "
-            + (f"{join(always)} collapses on every seed, and "
-               if always else "")
-            + (f"{join(never)} on none of them. "
-               if never else "")
-            + f"The healthy condition is stable to within "
-            f"{max(ts_sds):.4f} AUC across seeds, so the partition itself is "
-            f"not moving the result around. What does move is the severity of "
-            f"the collapse: the collapsed target's grouped AUC varies by "
-            f"{_st.stdev([h['val_auc_grouped'] for h in (next((q for q in rep['paired'] if q['planet'] == worst['planet']), None) for rep in reps) if h]):.4f} "
-            f"between seeds while its prediction spread stays at the same order "
-            f"of magnitude. The model collapses every time; how far above chance "
-            f"the wreckage happens to land is noise. That distinction matters, "
-            f"because it means the diagnostic to watch is the prediction spread "
-            f"and not the AUC — the AUC of a collapsed model is not a stable "
-            f"quantity, and a reviewer comparing two runs by AUC alone could "
-            f"reasonably conclude one of them was merely underfitting.")
+            f"The compression itself does not depend on the seed. "
+            f"{wname}'s signal ratio under grouped normalisation lands between "
+            f"{min(w_sig):.5f} and {max(w_sig):.5f} across all {n_rep} runs — "
+            f"a spread of {100 * (max(w_sig) - min(w_sig)) / min(w_sig):.0f}% "
+            f"against the {worst['signal_compression_grouped']:.0f}x compression "
+            f"itself — because it is a property of the preprocessing and the "
+            f"data, not of the optimiser. The healthy "
+            f"condition is stable too: per-timestep AUC moves by at most "
+            f"{max(ts_sds):.4f} between seeds. "
+            + (f"{join(never)} never collapse under any seed. "
+               if never else ""))
+        add("p",
+            f"What does depend on the seed is whether the network escapes. "
+            f"{wname} collapses to a constant on {n_coll} of {n_rep} seeds, "
+            f"with held-out prediction spread between {sci(min(coll_std))} and "
+            f"{sci(max(coll_std))} — four orders of magnitude below the "
+            f"{sci(min(healthy_std))} it reaches under correct normalisation."
+            + (f" On the {'other' if n_rep - n_coll > 1 else 'remaining'} "
+               f"{'seeds' if n_rep - n_coll > 1 else 'seed'} it does not fully "
+               f"collapse, but it does not recover either: prediction spread "
+               f"{sci(max(surv_std))}, still an order of magnitude short, at AUC "
+               f"{max(v for v, f in zip(w_auc, w_flags) if not f):.4f} against "
+               f"{f4(worst.get('val_auc_per-timestep'))} healthy. So the "
+               f"preprocessing reliably creates the conditions for the collapse, "
+               f"and the collapse is the usual but not the certain outcome."
+               if surv_std else
+               " The preprocessing does not merely make the collapse likely; "
+               "across these seeds it makes it certain."))
+        add("p",
+            f"This is the practical argument for the prediction-spread "
+            f"diagnostic recommended above. Across these runs {wname}'s "
+            f"grouped AUC spans "
+            f"{min(w_auc):.4f} to {max(w_auc):.4f}, a range that overlaps what "
+            f"a merely-degraded target scores — Mercury sits inside it on every "
+            f"seed while discriminating normally. AUC therefore cannot tell the "
+            f"two states apart. Prediction spread can: the collapsed runs and "
+            f"every healthy run are separated by orders of magnitude with "
+            f"nothing in between. If you are going to watch one number for this "
+            f"failure, watch that one.")
+
+        if ms_inv:
+            # The methodological half, across every seed. This is the stronger
+            # of the two results and it deserves its own count rather than
+            # riding on the collapse's.
+            inv_reps = [inv] + ms_inv
+            all_auc = [r["tree_auc"] for rep in inv_reps for r in rep["runs"]]
+            worst_spread = max(v for rep in inv_reps
+                               for v in rep["tree_auc_spread_across_conditions"]
+                               .values())
+            add("p",
+                f"The baseline's blindness replicates more cleanly still. "
+                f"Across {len(inv_reps)} seeds, {len(paired)} targets and three "
+                f"normalisation settings — {len(all_auc)} fitted trees in total "
+                f"— the tree's AUC never leaves the range "
+                f"{f4(min(all_auc))} to {f4(max(all_auc))}, and within any one "
+                f"seed and target it moves by at most {f4(worst_spread)} between "
+                f"settings. There is no seed on which the baseline notices. That "
+                f"matters more than the collapse count: the collapse is one "
+                f"target's misfortune, but a check that cannot fail is a "
+                f"property of the check.")
 
     # ── VI. Rare mode ────────────────────────────────────────────────────────
     add("h1", {"text": "Failing to Reach a Signal That Is Present",
@@ -819,7 +878,9 @@ def document() -> list[tuple[str, object]]:
             f"Seeds. Results are replicated across {n_seeds} seeds, which is "
             f"enough to rule out an unlucky initialisation but not enough to "
             f"support a tight confidence interval. We report the spread of the "
-            f"individual runs rather than a fitted interval.")
+            f"individual runs rather than a fitted interval. The collapse "
+            f"itself occurs on {n_collapse_seeds} of {n_seeds}; we do not have "
+            f"the sample size to say what governs the exception.")
     else:
         lims.append(
             "Single seed. Every result is one run at seed 42. The split is "

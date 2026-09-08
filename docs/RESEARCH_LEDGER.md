@@ -851,3 +851,73 @@ denominator when quoting either.
 `RESEARCH_PROPOSAL.md` C1 is corrected in place. Anyone drafting from the
 proposal's original C1 wording would have written a claim this repository's own
 experiment refutes.
+
+---
+
+## Multi-Seed Replication of C1 (2026-09-09)
+
+`LIMITATIONS.md` §1 and WP4 both flagged single-seed as the largest open gap on
+the headline results — "cheap, not done". It is now done for the two C1
+experiments. `src/ml/norm_ablation.py` and `src/ml/baseline_invariance.py` were
+re-run at seeds 0, 1, 2 and 3 alongside the existing seed 42, writing to
+`reports/multiseed_paper/`. Each seed redraws the train/val/test partition as
+well as the initialisation, so this is not just training noise.
+
+### The compression is deterministic; the collapse is not quite
+
+Venus, grouped normalisation, per seed:
+
+| Seed | grouped AUC | P(fail) std | signal ratio | collapsed |
+|---|---:|---:|---:|---|
+| 42 | 0.6037 | 3.11e-05 | 0.00229 | yes |
+| 0  | 0.5338 | 3.91e-05 | 0.00222 | yes |
+| 1  | 0.5773 | 1.57e-05 | 0.00232 | yes |
+| 2  | 0.8108 | 4.84e-05 | 0.00229 | yes |
+| 3  | 0.9305 | 3.64e-02 | 0.00227 | **no** |
+
+Two things to take from this.
+
+**The signal ratio barely moves** — 0.00222 to 0.00232, a 5% spread against a
+335x compression. That is expected and worth stating: the compression is a
+property of the scaler and the data, not of the optimiser. Whatever varies
+between seeds, the input the network is handed does not.
+
+**The collapse recurs on 4 of 5 seeds, not 5 of 5.** On seed 3 the network does
+not degenerate to a constant — P(fail) std 3.64e-02 — but it does not recover
+either, landing at AUC 0.9305 against 0.9999 under correct normalisation. So the
+preprocessing reliably creates the conditions for the collapse and the collapse
+is the usual outcome, but it is not certain. **Do not write "collapses on every
+seed" anywhere.** An earlier draft of the paper said exactly that, which was
+true at three seeds and false at five.
+
+The other three targets never collapse on any seed. Per-timestep AUC is stable
+to within 0.0004 across seeds on all four targets.
+
+### A consequence for the diagnostic
+
+Venus's grouped AUC spans 0.5338 to 0.9305 across seeds. That range **overlaps
+what a merely-degraded target scores** — Mercury sits inside it on every seed
+while discriminating normally. AUC therefore cannot distinguish a collapsed
+model from a degraded one. Prediction spread can: the collapsed runs sit at
+1.6e-05 to 4.8e-05 and every healthy run at ~4e-01, with nothing in between.
+
+This sharpens C1's diagnostic claim from "prediction variance is a useful
+check" to "prediction variance is the only one of the two that separates the
+states", and it is a multi-seed result rather than an inference.
+
+### The baseline-blindness half replicates completely
+
+Across 5 seeds x 4 targets x 3 normalisation settings — 60 fitted trees — the
+tree's AUC never leaves **0.9989–1.0000**, and within any one (seed, target) it
+moves by at most **0.0003** between settings. There is no seed on which the
+baseline notices anything is wrong.
+
+This is the stronger of the two results and should be led with. The collapse is
+one target's misfortune; a check that cannot fail is a property of the check.
+
+### Status
+
+- WP4 is closed for `norm_ablation` and `baseline_invariance`.
+- `rare_mode_sweep` multi-seed is running; the economics table (C2) is still
+  single-seed and remains open under WP4.
+- `LIMITATIONS.md` §1 updated accordingly.

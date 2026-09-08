@@ -54,6 +54,23 @@ launch-parameter screening at T0 beats telemetry screening at T40.
 - [`ENVIRONMENT.md`](ENVIRONMENT.md) — interpreter, dependencies, data paths.
 - [`../README.md`](../README.md) — progress report and quick start.
 
+### The paper
+
+[`paper/`](paper/) holds the write-up itself, in IEEE conference format.
+
+- [`paper/orbitguard_ieee.pdf`](paper/orbitguard_ieee.pdf) — the compiled paper.
+- [`paper/PAPER_NOTES.md`](paper/PAPER_NOTES.md) — what each claim is worth,
+  what is still missing, and where a reviewer will push. **Read this before
+  sending the draft to anyone.**
+- [`paper/content.py`](paper/content.py) — the prose and tables. Every number in
+  the paper is read from a `reports/*.json` artifact, so the paper cannot drift
+  from the experiments the way this directory once did. Edit here, not in the
+  generated `.tex` or `.docx`.
+
+The paper covers the *methods* findings — the normalisation collapse and the
+baseline's blindness to it — with the astrodynamics as the setting. It is not
+the aerospace paper; see `PAPER_NOTES.md` under "Venue".
+
 Generation-independent (infrastructure, not results):
 
 - [`NUMBA_JIT_PROPAGATOR.md`](NUMBA_JIT_PROPAGATOR.md)

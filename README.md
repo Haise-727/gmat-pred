@@ -485,6 +485,11 @@ python3 -m src.ml.error_analysis \
 
 ## Docs
 
+- [`docs/paper/`](docs/paper/) — **the paper**, in IEEE format. `orbitguard_ieee.pdf`
+  is the compiled draft; `PAPER_NOTES.md` says what each claim is worth and what
+  is still missing; `content.py` is the source every number is generated into.
+- [`docs/README.md`](docs/README.md) — which generation each doc describes. Read
+  this before quoting a number out of `docs/`.
 - [`docs/PAPER_READY_SUMMARY.md`](docs/PAPER_READY_SUMMARY.md) — all findings consolidated for paper writing
 - [`docs/RESEARCH_LEDGER.md`](docs/RESEARCH_LEDGER.md) — full history of decisions and verified numbers
 - [`docs/NUMBA_JIT_PROPAGATOR.md`](docs/NUMBA_JIT_PROPAGATOR.md) — JIT implementation and validation

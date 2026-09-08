@@ -1,0 +1,244 @@
+{
+  "description": "C1 controlled normalisation ablation",
+  "seed": 1,
+  "epochs": 60,
+  "operating_frac": 0.4,
+  "protocol": "identical architecture, seed and split; only the normalisation differs. signal_ratio is the mean within-timestep std of normalised features; pred_std is the std of P(fail) over the held-out split.",
+  "paired": [
+    {
+      "planet": "venus",
+      "val_auc_per-timestep": 0.9996,
+      "signal_per-timestep": 0.76853931,
+      "pred_std_per-timestep": 0.4664163291454315,
+      "collapsed_per-timestep": false,
+      "val_auc_global": 0.9891,
+      "signal_global": 0.05229044,
+      "pred_std_global": 0.4472997188568115,
+      "collapsed_global": false,
+      "val_auc_grouped": 0.5773,
+      "signal_grouped": 0.00232095,
+      "pred_std_grouped": 1.573417102918029e-05,
+      "collapsed_grouped": true,
+      "val_auc_gain_vs_grouped": 0.4223,
+      "signal_compression_grouped": 331.1
+    },
+    {
+      "planet": "mars",
+      "val_auc_per-timestep": 0.999,
+      "signal_per-timestep": 1.08571124,
+      "pred_std_per-timestep": 0.4341098666191101,
+      "collapsed_per-timestep": false,
+      "val_auc_global": 0.995,
+      "signal_global": 0.04774227,
+      "pred_std_global": 0.39780840277671814,
+      "collapsed_global": false,
+      "val_auc_grouped": 0.9351,
+      "signal_grouped": 0.81163871,
+      "pred_std_grouped": 0.3954523801803589,
+      "collapsed_grouped": false,
+      "val_auc_gain_vs_grouped": 0.0639,
+      "signal_compression_grouped": 1.3
+    },
+    {
+      "planet": "mercury",
+      "val_auc_per-timestep": 0.9999,
+      "signal_per-timestep": 0.77130967,
+      "pred_std_per-timestep": 0.4036228060722351,
+      "collapsed_per-timestep": false,
+      "val_auc_global": 0.9954,
+      "signal_global": 0.13335885,
+      "pred_std_global": 0.41252046823501587,
+      "collapsed_global": false,
+      "val_auc_grouped": 0.914,
+      "signal_grouped": 0.0491146,
+      "pred_std_grouped": 0.42088058590888977,
+      "collapsed_grouped": false,
+      "val_auc_gain_vs_grouped": 0.0859,
+      "signal_compression_grouped": 15.7
+    },
+    {
+      "planet": "jupiter",
+      "val_auc_per-timestep": 1.0,
+      "signal_per-timestep": 0.77137375,
+      "pred_std_per-timestep": 0.4753842055797577,
+      "collapsed_per-timestep": false,
+      "val_auc_global": 0.9999,
+      "signal_global": 0.07769593,
+      "pred_std_global": 0.4749184250831604,
+      "collapsed_global": false,
+      "val_auc_grouped": 1.0,
+      "signal_grouped": 0.0251009,
+      "pred_std_grouped": 0.4605330228805542,
+      "collapsed_grouped": false,
+      "val_auc_gain_vs_grouped": 0.0,
+      "signal_compression_grouped": 30.7
+    }
+  ],
+  "runs": [
+    {
+      "planet": "venus",
+      "norm_mode": "per-timestep",
+      "scaler_fitted_over": [
+        "venus"
+      ],
+      "signal_ratio": 0.76853931,
+      "val_auc": 0.9996,
+      "test_f1": 0.9945,
+      "pred_std": 0.4664163291454315,
+      "collapsed": false,
+      "train_seconds": 43.3
+    },
+    {
+      "planet": "venus",
+      "norm_mode": "global",
+      "scaler_fitted_over": [
+        "venus"
+      ],
+      "signal_ratio": 0.05229044,
+      "val_auc": 0.9891,
+      "test_f1": 0.9793,
+      "pred_std": 0.4472997188568115,
+      "collapsed": false,
+      "train_seconds": 43.7
+    },
+    {
+      "planet": "venus",
+      "norm_mode": "grouped",
+      "scaler_fitted_over": [
+        "mercury",
+        "venus",
+        "mars"
+      ],
+      "signal_ratio": 0.00232095,
+      "val_auc": 0.5773,
+      "test_f1": 0.801,
+      "pred_std": 1.573417102918029e-05,
+      "collapsed": true,
+      "train_seconds": 44.3
+    },
+    {
+      "planet": "mars",
+      "norm_mode": "per-timestep",
+      "scaler_fitted_over": [
+        "mars"
+      ],
+      "signal_ratio": 1.08571124,
+      "val_auc": 0.999,
+      "test_f1": 0.9906,
+      "pred_std": 0.4341098666191101,
+      "collapsed": false,
+      "train_seconds": 43.9
+    },
+    {
+      "planet": "mars",
+      "norm_mode": "global",
+      "scaler_fitted_over": [
+        "mars"
+      ],
+      "signal_ratio": 0.04774227,
+      "val_auc": 0.995,
+      "test_f1": 0.9825,
+      "pred_std": 0.39780840277671814,
+      "collapsed": false,
+      "train_seconds": 44.2
+    },
+    {
+      "planet": "mars",
+      "norm_mode": "grouped",
+      "scaler_fitted_over": [
+        "mercury",
+        "venus",
+        "mars"
+      ],
+      "signal_ratio": 0.81163871,
+      "val_auc": 0.9351,
+      "test_f1": 0.9242,
+      "pred_std": 0.3954523801803589,
+      "collapsed": false,
+      "train_seconds": 44.2
+    },
+    {
+      "planet": "mercury",
+      "norm_mode": "per-timestep",
+      "scaler_fitted_over": [
+        "mercury"
+      ],
+      "signal_ratio": 0.77130967,
+      "val_auc": 0.9999,
+      "test_f1": 0.9962,
+      "pred_std": 0.4036228060722351,
+      "collapsed": false,
+      "train_seconds": 43.7
+    },
+    {
+      "planet": "mercury",
+      "norm_mode": "global",
+      "scaler_fitted_over": [
+        "mercury"
+      ],
+      "signal_ratio": 0.13335885,
+      "val_auc": 0.9954,
+      "test_f1": 0.9829,
+      "pred_std": 0.41252046823501587,
+      "collapsed": false,
+      "train_seconds": 44.7
+    },
+    {
+      "planet": "mercury",
+      "norm_mode": "grouped",
+      "scaler_fitted_over": [
+        "mercury",
+        "venus",
+        "mars"
+      ],
+      "signal_ratio": 0.0491146,
+      "val_auc": 0.914,
+      "test_f1": 0.9004,
+      "pred_std": 0.42088058590888977,
+      "collapsed": false,
+      "train_seconds": 44.1
+    },
+    {
+      "planet": "jupiter",
+      "norm_mode": "per-timestep",
+      "scaler_fitted_over": [
+        "jupiter"
+      ],
+      "signal_ratio": 0.77137375,
+      "val_auc": 1.0,
+      "test_f1": 0.999,
+      "pred_std": 0.4753842055797577,
+      "collapsed": false,
+      "train_seconds": 44.4
+    },
+    {
+      "planet": "jupiter",
+      "norm_mode": "global",
+      "scaler_fitted_over": [
+        "jupiter"
+      ],
+      "signal_ratio": 0.07769593,
+      "val_auc": 0.9999,
+      "test_f1": 0.999,
+      "pred_std": 0.4749184250831604,
+      "collapsed": false,
+      "train_seconds": 44.2
+    },
+    {
+      "planet": "jupiter",
+      "norm_mode": "grouped",
+      "scaler_fitted_over": [
+        "jupiter",
+        "saturn",
+        "uranus",
+        "neptune"
+      ],
+      "signal_ratio": 0.0251009,
+      "val_auc": 1.0,
+      "test_f1": 0.998,
+      "pred_std": 0.4605330228805542,
+      "collapsed": false,
+      "train_seconds": 45.5
+    }
+  ]
+}
