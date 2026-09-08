@@ -68,6 +68,25 @@ def load(name: str) -> dict | None:
     return json.loads(p.read_text()) if p.exists() else None
 
 
+def load_traces() -> dict | None:
+    """
+    The raw held-out predictions behind Fig. 2, if collect_traces.py has run.
+
+    Only used for statements about the *shape* of the prediction distribution,
+    which the summary artifacts cannot support: they record a standard
+    deviation, and "every mission got the same number" is a claim about the
+    range.
+    """
+    p = REPORTS / "prediction_traces.npz"
+    if not p.exists():
+        return None
+    try:
+        import numpy as np
+    except ImportError:
+        return None
+    return dict(np.load(p))
+
+
 def load_multiseed(prefix: str) -> list[dict]:
     """Every seed replication of one experiment, or [] if none were run."""
     if not MULTISEED.exists():
@@ -107,6 +126,7 @@ def document() -> list[tuple[str, object]]:
     ms_norm = load_multiseed("normalisation_ablation")
     ms_inv = load_multiseed("baseline_invariance")
     ms_rare = load_multiseed("rare_mode_sweep")
+    traces = load_traces()
 
     D: list[tuple[str, object]] = []
     add = lambda k, v: D.append((k, v))                        # noqa: E731
@@ -146,8 +166,14 @@ def document() -> list[tuple[str, object]]:
         f"deviation of its held-out prediction is {sci(worst.get('pred_std_grouped'))} "
         f"and its validation AUC is {f4(worst.get('val_auc_grouped'))}, against "
         f"{f4(worst.get('val_auc_per-timestep'))} for the same architecture "
-        f"under per-timestep normalisation. Every one of the 1,500 held-out "
-        f"missions receives the same probability to five decimal places. A "
+        f"under per-timestep normalisation. "
+        + (lambda t: (
+            f"Every one of the {len(t):,} held-out missions falls inside a "
+            f"window {t.max() - t.min():.1e} wide. "
+            if t is not None else "")
+           )(traces.get(f"{worst.get('planet')}__grouped__p_fail")
+             if traces else None)
+        + f"A "
         f"gradient-boosted tree fitted to the very same arrays does not notice: "
         f"its AUC moves by at most {f4(tree_spread)} across all three "
         f"normalisation settings, and it reports the task as almost perfectly "
@@ -280,7 +306,8 @@ def document() -> list[tuple[str, object]]:
         "In [#sec:rare] we report a case where none of that is the issue: "
         "oversampling a rare failure mode by a factor of "
         f"{rare['runs'][-1]['effective_resample_factor']:.1f} moves its recall "
-        "not at all, while a tree on the same window separates it perfectly. "
+        "not at all, while a tree on the same window separates it almost "
+        "perfectly. "
         "The evidence in the space domain runs the same way — the ESA anomaly "
         "benchmark reports that current sequence models still struggle on rare "
         "but operationally important events in real satellite telemetry "
@@ -785,12 +812,34 @@ def document() -> list[tuple[str, object]]:
             f"{rare['runs'][-1]['effective_resample_factor']:.2f}x. We report "
             f"the latter, because it describes what the optimiser saw.")
         if ms_rare:
-            recalls = {r["rare_mode_recall"] for rep in ms_rare
-                       for r in rep["runs"]}
+            # Across seeds the rare mode is redrawn along with the split, so
+            # neither the sequence recall nor the tree's is a fixed number. The
+            # gap is what replicates, and it is reported as a range rather than
+            # rounded to the seed-42 extreme of 0.0000 against 1.0000.
+            rare_reps = [rare] + ms_rare
+            seq = [r["rare_mode_recall"] for rep in rare_reps
+                   for r in rep["runs"]]
+            tree_rec = [rep["tree_reference"]["recall_at_0.5"]
+                        for rep in rare_reps]
+            tree_auc = [rep["tree_reference"]["auc"] for rep in rare_reps]
+            flat = [len({r["rare_mode_recall"] for r in rep["runs"]}) == 1
+                    for rep in rare_reps]
             add("p",
-                f"Repeating the sweep across {1 + len(ms_rare)} seeds changes "
-                f"nothing: the rare-mode recall is "
-                f"{'exactly 0.0000 in every run' if recalls == {0.0} else 'unchanged in kind'}.")
+                f"The sweep was repeated across {len(rare_reps)} seeds, each of "
+                f"which redraws the split and therefore the rare mode itself. "
+                f"The gap replicates and the extremes do not: sequence recall "
+                f"on the rare mode ranges {f4(min(seq))} to {f4(max(seq))} "
+                f"across every seed and sampling weight, against a tree on the "
+                f"identical window at recall {f4(min(tree_rec))} to "
+                f"{f4(max(tree_rec))} and AUC {f4(min(tree_auc))} to "
+                f"{f4(max(tree_auc))}. "
+                + ("On every seed the sampling weight makes no difference "
+                   "whatsoever — recall is identical at all three settings "
+                   "within a seed, so the flat line in the figure is not a "
+                   "property of one run."
+                   if all(flat) else
+                   "The sampling weight moves recall on some seeds but never "
+                   "closes the gap."))
 
     # ── VII. Economics ───────────────────────────────────────────────────────
     add("h1", {"text": "Where the Screen Actually Belongs",
@@ -930,10 +979,24 @@ def document() -> list[tuple[str, object]]:
     add("h1", "Reproduction")
     add("code",
         "export ORBITGUARD_DATA=/path/to/dataset\n"
+        "\n"
+        "# Primary results, seed 42\n"
         "python -m src.ml.norm_ablation          # Table I\n"
         "python -m src.ml.baseline_invariance    # Table II\n"
         "python -m src.ml.rare_mode_sweep        # Table IV\n"
         "python -m src.ml.prune_economics        # Table V\n"
+        "\n"
+        "# Replication, one pass per seed (Table III, Section V)\n"
+        "for S in 0 1 2 3; do\n"
+        "  python -m src.ml.norm_ablation --seed $S \\\n"
+        "      --out reports/multiseed_paper/normalisation_ablation_seed$S.json\n"
+        "  python -m src.ml.baseline_invariance --seed $S \\\n"
+        "      --out reports/multiseed_paper/baseline_invariance_seed$S.json\n"
+        "  python -m src.ml.rare_mode_sweep --seed $S \\\n"
+        "      --out reports/multiseed_paper/rare_mode_sweep_seed$S.json\n"
+        "done\n"
+        "\n"
+        "# The document\n"
         "python docs/paper/collect_traces.py     # Fig. 2 data\n"
         "python docs/paper/figures.py            # all figures\n"
         "python docs/paper/render_latex.py       # this document")

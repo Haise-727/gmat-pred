@@ -41,7 +41,7 @@
 
 
 \begin{abstract}
-Fitting one feature scaler across several groups of data is an ordinary thing to do. We show it can quietly destroy a sequence model while every check a practitioner would normally run says the pipeline is fine. On 70,000 simulated interplanetary trajectories across seven targets, a Transformer trained under a scaler pooled across a group of targets stops responding to its input on Venus: the standard deviation of its held-out prediction is 3.11e-05 and its validation AUC is 0.6037, against 0.9999 for the same architecture under per-timestep normalisation. Every one of the 1,500 held-out missions receives the same probability to five decimal places. A gradient-boosted tree fitted to the very same arrays does not notice: its AUC moves by at most 0.0002 across all three normalisation settings, and it reports the task as almost perfectly separable while the network cannot separate it at all. So the usual instinct --- check a simple baseline before blaming the data --- fails exactly here, because trees are invariant to the thing that breaks the network. The effect is severe but not universal: 1 of 4 targets collapses outright and the rest lose between 0.0003 and 0.0925 AUC while still working, so we report when it happens and when it does not. We separate the two kinds of pooling that are usually confused --- pooling across timesteps is survivable, pooling across groups is not --- give a diagnostic based on the spread of the predictions rather than on accuracy, and report a second failure of the same model, which cannot reach a rare class that a tree recovers from the identical input. Across 5 seeds the compression is identical and the collapse recurs on 4 of them, so it is a property of the preprocessing rather than of one unlucky initialisation.
+Fitting one feature scaler across several groups of data is an ordinary thing to do. We show it can quietly destroy a sequence model while every check a practitioner would normally run says the pipeline is fine. On 70,000 simulated interplanetary trajectories across seven targets, a Transformer trained under a scaler pooled across a group of targets stops responding to its input on Venus: the standard deviation of its held-out prediction is 3.11e-05 and its validation AUC is 0.6037, against 0.9999 for the same architecture under per-timestep normalisation. Every one of the 1,500 held-out missions falls inside a window 3.2e-04 wide. A gradient-boosted tree fitted to the very same arrays does not notice: its AUC moves by at most 0.0002 across all three normalisation settings, and it reports the task as almost perfectly separable while the network cannot separate it at all. So the usual instinct --- check a simple baseline before blaming the data --- fails exactly here, because trees are invariant to the thing that breaks the network. The effect is severe but not universal: 1 of 4 targets collapses outright and the rest lose between 0.0003 and 0.0925 AUC while still working, so we report when it happens and when it does not. We separate the two kinds of pooling that are usually confused --- pooling across timesteps is survivable, pooling across groups is not --- give a diagnostic based on the spread of the predictions rather than on accuracy, and report a second failure of the same model, which cannot reach a rare class that a tree recovers from the identical input. Across 5 seeds the compression is identical and the collapse recurs on 4 of them, so it is a property of the preprocessing rather than of one unlucky initialisation.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -78,7 +78,7 @@ Tree ensembles remain strong on tabular and physical data, often matching or bea
 
 \subsection{Rare classes and optimisation limits}
 
-The usual answers to extreme class imbalance are reweighting, focal loss, or resampling \cite{buda2018systematic,lin2017focal,cui2019class}. In Section~\ref{sec:rare} we report a case where none of that is the issue: oversampling a rare failure mode by a factor of 19.2 moves its recall not at all, while a tree on the same window separates it perfectly. The evidence in the space domain runs the same way --- the ESA anomaly benchmark reports that current sequence models still struggle on rare but operationally important events in real satellite telemetry \cite{kotowski2024esaadb}, and it is worth noting that carefully engineered LSTM pipelines do work on this kind of data when the per-channel handling is right \cite{hundman2018detecting}. That contrast is the point: the difference is in the engineering, not the model class.
+The usual answers to extreme class imbalance are reweighting, focal loss, or resampling \cite{buda2018systematic,lin2017focal,cui2019class}. In Section~\ref{sec:rare} we report a case where none of that is the issue: oversampling a rare failure mode by a factor of 19.2 moves its recall not at all, while a tree on the same window separates it almost perfectly. The evidence in the space domain runs the same way --- the ESA anomaly benchmark reports that current sequence models still struggle on rare but operationally important events in real satellite telemetry \cite{kotowski2024esaadb}, and it is worth noting that carefully engineered LSTM pipelines do work on this kind of data when the per-channel handling is right \cite{hundman2018detecting}. That contrast is the point: the difference is in the engineering, not the model class.
 
 \subsection{Learned screening in astrodynamics}
 
@@ -282,6 +282,8 @@ Because both models consume the same array and one of them separates the classes
 
 Two denominators are worth stating, because this number is easy to quote misleadingly. Relative to the majority failure mode the rare mode is oversampled by roughly 45x at the strongest setting. Relative to uniform sampling over the training set --- which is what the sampler actually applies --- the factor is 19.23x. We report the latter, because it describes what the optimiser saw.
 
+The sweep was repeated across 5 seeds, each of which redraws the split and therefore the rare mode itself. The gap replicates and the extremes do not: sequence recall on the rare mode ranges 0.0000 to 0.1429 across every seed and sampling weight, against a tree on the identical window at recall 0.9333 to 1.0000 and AUC 0.9997 to 1.0000. On every seed the sampling weight makes no difference whatsoever --- recall is identical at all three settings within a seed, so the flat line in the figure is not a property of one run.
+
 \section{Where the Screen Actually Belongs}
 
 \label{sec:econ}
@@ -338,10 +340,24 @@ The fix, per-group normalisation, is not novel and we do not claim it is. The co
 
 \begin{lstlisting}
 export ORBITGUARD_DATA=/path/to/dataset
+
+# Primary results, seed 42
 python -m src.ml.norm_ablation          # Table I
 python -m src.ml.baseline_invariance    # Table II
 python -m src.ml.rare_mode_sweep        # Table IV
 python -m src.ml.prune_economics        # Table V
+
+# Replication, one pass per seed (Table III, Section V)
+for S in 0 1 2 3; do
+  python -m src.ml.norm_ablation --seed $S \
+      --out reports/multiseed_paper/normalisation_ablation_seed$S.json
+  python -m src.ml.baseline_invariance --seed $S \
+      --out reports/multiseed_paper/baseline_invariance_seed$S.json
+  python -m src.ml.rare_mode_sweep --seed $S \
+      --out reports/multiseed_paper/rare_mode_sweep_seed$S.json
+done
+
+# The document
 python docs/paper/collect_traces.py     # Fig. 2 data
 python docs/paper/figures.py            # all figures
 python docs/paper/render_latex.py       # this document
