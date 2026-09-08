@@ -205,7 +205,8 @@ def rich(p, text: str, cites: dict, refs: dict, size=9.5) -> None:
             r = p.add_run("[" + ", ".join(str(n) for n in sorted(nums)) + "]")
         else:
             label = body[2:-1]
-            kind = "Fig." if label.startswith("fig:") else "Table"
+            kind = ("Fig." if label.startswith("fig:")
+                    else "Section" if label.startswith("sec:") else "Table")
             r = p.add_run(f"{kind} {refs.get(label, '?')}")
         r.font.size = Pt(size)
         last = m.end()
@@ -215,8 +216,13 @@ def rich(p, text: str, cites: dict, refs: dict, size=9.5) -> None:
 
 
 def number_floats(doc_blocks) -> dict[str, str]:
-    """Assign figure and table numbers in document order, before rendering."""
-    refs, nfig, ntab = {}, 0, 0
+    """
+    Assign figure, table and section numbers in document order.
+
+    Done as a pre-pass rather than while rendering, because prose regularly
+    refers forward — the Related Work section points at Section VII.
+    """
+    refs, nfig, ntab, nsec = {}, 0, 0, 0
     for kind, payload in doc_blocks:
         if kind == "figure":
             nfig += 1
@@ -224,6 +230,11 @@ def number_floats(doc_blocks) -> dict[str, str]:
         elif kind == "table":
             ntab += 1
             refs[payload["label"]] = ROMAN[ntab] if ntab < len(ROMAN) else str(ntab)
+        elif kind == "h1":
+            nsec += 1
+            if isinstance(payload, dict) and payload.get("label"):
+                refs[payload["label"]] = (ROMAN[nsec] if nsec < len(ROMAN)
+                                          else str(nsec))
     return refs
 
 
@@ -356,7 +367,8 @@ def build(out_path: Path) -> None:
             h = doc.add_heading("", level=1)
             h.alignment = WD_ALIGN_PARAGRAPH.CENTER
             num = ROMAN[n_sec] if n_sec < len(ROMAN) else str(n_sec)
-            r = h.add_run(f"{num}.  {payload}")
+            text = payload["text"] if isinstance(payload, dict) else payload
+            r = h.add_run(f"{num}.  {text}")
             r.font.size = Pt(10)
             r.font.name = BODY_FONT
 

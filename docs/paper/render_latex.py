@@ -77,7 +77,8 @@ def tex(text: str) -> str:
             out.append(f"\\cite{{{keys}}}")
         else:
             label = body[2:-1]
-            kind = "Fig." if label.startswith("fig:") else "Table"
+            kind = ("Fig." if label.startswith("fig:")
+                    else "Section" if label.startswith("sec:") else "Table")
             out.append(f"{kind}~\\ref{{{label}}}")
         last = m.end()
     out.append(esc(text[last:]))
@@ -207,7 +208,11 @@ def build(out_path: Path) -> None:
             kws = ", ".join(esc(k) for k in payload)
             parts.append(f"\\begin{{IEEEkeywords}}\n{kws}\n\\end{{IEEEkeywords}}")
         elif kind == "h1":
-            parts.append(f"\\section{{{tex(payload)}}}")
+            # A section carries a label only when the prose points at it.
+            text = payload["text"] if isinstance(payload, dict) else payload
+            parts.append(f"\\section{{{tex(text)}}}")
+            if isinstance(payload, dict) and payload.get("label"):
+                parts.append(f"\\label{{{payload['label']}}}")
         elif kind == "h2":
             parts.append(f"\\subsection{{{tex(payload)}}}")
         elif kind == "p":

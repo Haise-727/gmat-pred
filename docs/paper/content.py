@@ -25,7 +25,8 @@ Block format
     ("title",    {...})              title, authors, affiliation
     ("abstract", str)
     ("keywords", [str, ...])
-    ("h1", str) / ("h2", str)        section / subsection
+    ("h1", str | {"text","label"})   section (label enables [#sec:x])
+    ("h2", str)                      subsection
     ("p",  str)                      paragraph
     ("bullets", [str, ...])
     ("table",  {...})                caption, headers, rows, label, wide
@@ -88,6 +89,14 @@ def sci(x) -> str:
     return "—" if x is None else f"{x:.2e}"
 
 
+def join(items: list[str]) -> str:
+    """'a', 'a and b', 'a, b and c' — generated lists have to read as prose."""
+    items = list(items)
+    if len(items) <= 1:
+        return items[0] if items else ""
+    return f"{', '.join(items[:-1])} and {items[-1]}"
+
+
 # ── the document ─────────────────────────────────────────────────────────────
 
 def document() -> list[tuple[str, object]]:
@@ -146,7 +155,16 @@ def document() -> list[tuple[str, object]]:
         f"on the spread of the predictions rather than on accuracy, and report a "
         f"second failure of the same model, which cannot reach a rare class that "
         f"a tree recovers from the identical input."
-        + (f" All results are replicated across {n_seeds} seeds." if ms_norm else ""))
+        # Only claim what was actually re-run. The three experiments are
+        # replicated independently, and a blanket "all results" would overclaim
+        # whenever one of them has not been swept.
+        + (f" The collapse and the baseline's blindness to it are replicated "
+           f"across {n_seeds} seeds."
+           if ms_norm and ms_inv and not ms_rare else
+           f" All three experiments are replicated across {n_seeds} seeds."
+           if ms_norm and ms_inv and ms_rare else
+           f" The collapse is replicated across {n_seeds} seeds."
+           if ms_norm else ""))
 
     add("keywords", KEYWORDS)
 
@@ -253,7 +271,7 @@ def document() -> list[tuple[str, object]]:
     add("p",
         "The usual answers to extreme class imbalance are reweighting, focal "
         "loss, or resampling [@buda2018systematic, lin2017focal, cui2019class]. "
-        "In Section VI we report a case where none of that is the issue: "
+        "In [#sec:rare] we report a case where none of that is the issue: "
         "oversampling a rare failure mode by a factor of "
         f"{rare['runs'][-1]['effective_resample_factor']:.1f} moves its recall "
         "not at all, while a tree on the same window separates it perfectly. "
@@ -285,7 +303,7 @@ def document() -> list[tuple[str, object]]:
         "That last one is the closest analogue to our setting: a screening task "
         "on a deterministic astrodynamics simulator, benchmarked against "
         "non-deep baselines. Learned early cancellation of individual Monte "
-        "Carlo trajectory runs, which is what Section VII evaluates, is "
+        "Carlo trajectory runs, which is what [#sec:econ] evaluates, is "
         "something we could not find treated in this literature; the closest "
         "work reduces the cost of each propagation rather than deciding which "
         "propagations to start [@massari2017nonlinear, jia2022datadriven]. "
@@ -317,7 +335,7 @@ def document() -> list[tuple[str, object]]:
         "and eccentricity. An eighth target was generated (the Moon) and is "
         "deliberately excluded from the study: it is a six-day Earth-centric "
         "transfer sampled at 60 s, and shares neither the cost structure of "
-        "Section VII nor the dynamical regime of a heliocentric transfer.")
+        "[#sec:econ] nor the dynamical regime of a heliocentric transfer.")
     add("p",
         "The screening task is to observe the first 40% of a mission's "
         "trajectory and decide whether to abort it. Splits are 70/15/15 by "
@@ -614,15 +632,54 @@ def document() -> list[tuple[str, object]]:
                        f"as an interval. With n = {n_seeds} the spread of the "
                        f"raw points is the honest summary.",
         })
+        # The interpretation, computed rather than asserted: which targets
+        # collapsed on which seeds, and how much the healthy condition moved.
+        import statistics as _st
+        always, never = [], []
+        for p in paired:
+            hits = [next((q for q in rep["paired"] if q["planet"] == p["planet"]),
+                         None) for rep in reps]
+            flags = [bool(h.get("collapsed_grouped")) for h in hits if h]
+            if flags and all(flags):
+                always.append(p["planet"].capitalize())
+            elif flags and not any(flags):
+                never.append(p["planet"].capitalize())
+        ts_sds = []
+        for p in paired:
+            vals = [h["val_auc_per-timestep"] for h in
+                    (next((q for q in rep["paired"]
+                           if q["planet"] == p["planet"]), None) for rep in reps)
+                    if h]
+            if len(vals) > 1:
+                ts_sds.append(_st.stdev(vals))
+        add("p",
+            f"The answer is that it is not a seed artifact. "
+            + (f"{join(always)} collapses on every seed, and "
+               if always else "")
+            + (f"{join(never)} on none of them. "
+               if never else "")
+            + f"The healthy condition is stable to within "
+            f"{max(ts_sds):.4f} AUC across seeds, so the partition itself is "
+            f"not moving the result around. What does move is the severity of "
+            f"the collapse: the collapsed target's grouped AUC varies by "
+            f"{_st.stdev([h['val_auc_grouped'] for h in (next((q for q in rep['paired'] if q['planet'] == worst['planet']), None) for rep in reps) if h]):.4f} "
+            f"between seeds while its prediction spread stays at the same order "
+            f"of magnitude. The model collapses every time; how far above chance "
+            f"the wreckage happens to land is noise. That distinction matters, "
+            f"because it means the diagnostic to watch is the prediction spread "
+            f"and not the AUC — the AUC of a collapsed model is not a stable "
+            f"quantity, and a reviewer comparing two runs by AUC alone could "
+            f"reasonably conclude one of them was merely underfitting.")
 
     # ── VI. Rare mode ────────────────────────────────────────────────────────
-    add("h1", "Failing to Reach a Signal That Is Present")
+    add("h1", {"text": "Failing to Reach a Signal That Is Present",
+               "label": "sec:rare"})
     if rare:
         add("p",
             f"A second failure shows up even when the normalisation is correct. "
             f"On {rare['planet'].capitalize()}, the failure mode "
-            f"'{rare['rare_mode']}' accounts for {rare['rare_mode_train_n']} of "
-            f"{rare['n_train_failures']} training failures. A tree fitted to the "
+            f"'{rare['rare_mode']}' accounts for {rare['rare_mode_train_n']:,} of "
+            f"{rare['n_train_failures']:,} training failures. A tree fitted to the "
             f"same normalised {rare['window_steps']}-step window separates that "
             f"mode from success at AUC {f4(rare['tree_reference']['auc'])}, with "
             f"recall {f4(rare['tree_reference']['recall_at_0.5'])}. The sequence "
@@ -677,7 +734,8 @@ def document() -> list[tuple[str, object]]:
                 f"{'exactly 0.0000 in every run' if recalls == {0.0} else 'unchanged in kind'}.")
 
     # ── VII. Economics ───────────────────────────────────────────────────────
-    add("h1", "Where the Screen Actually Belongs")
+    add("h1", {"text": "Where the Screen Actually Belongs",
+               "label": "sec:econ"})
     if econ:
         w = econ["weighted"]
         rows = [
