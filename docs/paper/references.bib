@@ -1,0 +1,345 @@
+% ═══════════════════════════════════════════════════════════════════════════
+% References for the OrbitGuard methods paper.
+%
+% Two groups:
+%   1. Methods / ML literature — supplied with the paper brief.
+%   2. Space, astrodynamics and aerospace literature — each entry below was
+%      checked against arXiv, the publisher DOI page, NASA NTRS, ADS or the
+%      conference proceedings before being added. Nothing here is reconstructed
+%      from memory.
+% ═══════════════════════════════════════════════════════════════════════════
+
+% ── 1. Normalisation ────────────────────────────────────────────────────────
+
+@inproceedings{ioffe2015batch,
+  title     = {Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift},
+  author    = {Ioffe, Sergey and Szegedy, Christian},
+  booktitle = {International Conference on Machine Learning (ICML)},
+  pages     = {448--456},
+  year      = {2015},
+  doi       = {10.48550/arXiv.1502.03167}
+}
+
+@article{ba2016layer,
+  title   = {Layer Normalization},
+  author  = {Ba, Jimmy Lei and Kiros, Jamie Ryan and Hinton, Geoffrey E.},
+  journal = {arXiv preprint arXiv:1607.06450},
+  year    = {2016},
+  doi     = {10.48550/arXiv.1607.06450}
+}
+
+@inproceedings{wu2018group,
+  title     = {Group Normalization},
+  author    = {Wu, Yuxin and He, Kaiming},
+  booktitle = {Proceedings of the European Conference on Computer Vision (ECCV)},
+  pages     = {3--19},
+  year      = {2018},
+  doi       = {10.48550/arXiv.1803.08494}
+}
+
+@article{ulyanov2016instance,
+  title   = {Instance Normalization: The Missing Ingredient for Fast Stylization},
+  author  = {Ulyanov, Dmitry and Vedaldi, Andrea and Lempitsky, Victor},
+  journal = {arXiv preprint arXiv:1607.08022},
+  year    = {2016},
+  doi     = {10.48550/arXiv.1607.08022}
+}
+
+@article{salamon2017deep,
+  title   = {Deep Convolutional Neural Networks and Data Augmentation for Environmental Sound Classification},
+  author  = {Salamon, Justin and Bello, Juan Pablo},
+  journal = {IEEE Signal Processing Letters},
+  volume  = {24},
+  number  = {3},
+  pages   = {279--283},
+  year    = {2017},
+  doi     = {10.1109/LSP.2017.2657381}
+}
+
+% ── 2. Shortcut learning ────────────────────────────────────────────────────
+
+@article{geirhos2020shortcut,
+  title   = {Shortcut Learning in Deep Neural Networks},
+  author  = {Geirhos, Robert and Jacobsen, J{\"o}rn-Henrik and Michaelis, Claudio and Zemel, Richard and Brendel, Wieland and Bethge, Matthias and Wichmann, Felix A.},
+  journal = {Nature Machine Intelligence},
+  volume  = {2},
+  number  = {11},
+  pages   = {665--673},
+  year    = {2020},
+  doi     = {10.1038/s42256-020-00257-0}
+}
+
+@inproceedings{shah2020pitfalls,
+  title     = {The Pitfalls of Simplicity Bias in Neural Networks},
+  author    = {Shah, Harshay and Tamuly, Kaustav and Raghunathan, Aditi and Jain, Prateek and Netrapalli, Praneeth},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  volume    = {33},
+  pages     = {9573--9585},
+  year      = {2020}
+}
+
+@article{lapuschkin2019unmasking,
+  title   = {Unmasking Clever Hans predictors and reasoning failures in neural networks via LRP},
+  author  = {Lapuschkin, Sebastian and W{\"a}ldchen, Stephan and Binder, Alexander and Montavon, Gr{\'e}goire and Samek, Wojciech and M{\"u}ller, Klaus-Robert},
+  journal = {Nature Communications},
+  volume  = {10},
+  number  = {1},
+  pages   = {1096},
+  year    = {2019},
+  doi     = {10.1038/s41467-019-08987-4}
+}
+
+% ── 3. Trees on tabular data ────────────────────────────────────────────────
+
+@inproceedings{chen2016xgboost,
+  title     = {XGBoost: A Scalable Tree Boosting System},
+  author    = {Chen, Tianqi and Guestrin, Carlos},
+  booktitle = {Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining},
+  pages     = {785--794},
+  year      = {2016},
+  doi       = {10.1145/2939672.2939785}
+}
+
+@inproceedings{ke2017lightgbm,
+  title     = {LightGBM: A Highly Efficient Gradient Boosting Decision Tree},
+  author    = {Ke, Guolin and Meng, Qi and Finley, Thomas and Wang, Taifeng and Chen, Wei and Ma, Weidong and Ye, Qiwei and Liu, Tie-Yan},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  volume    = {30},
+  pages     = {3146--3154},
+  year      = {2017}
+}
+
+@inproceedings{grinsztajn2022tree,
+  title     = {Why do tree-based models still outperform deep learning on tabular data?},
+  author    = {Grinsztajn, L{\'e}o and Oyallon, Edouard and Varoquaux, Ga{\"e}l},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  volume    = {35},
+  pages     = {507--520},
+  year      = {2022},
+  doi       = {10.48550/arXiv.2207.08815}
+}
+
+@article{shwartz2022tabular,
+  title   = {Tabular Data: Deep Learning is Not All You Need},
+  author  = {Shwartz-Ziv, Ravid and Armon, Amitai},
+  journal = {Information Fusion},
+  volume  = {81},
+  pages   = {84--90},
+  year    = {2022},
+  doi     = {10.1016/j.inffus.2021.11.011}
+}
+
+% ── 4. Class imbalance ──────────────────────────────────────────────────────
+
+@article{buda2018systematic,
+  title   = {A systematic study of the class imbalance problem in convolutional neural networks},
+  author  = {Buda, Mateusz and Maki, Atsuto and Mazurowski, Maciej A.},
+  journal = {Neural Networks},
+  volume  = {106},
+  pages   = {249--259},
+  year    = {2018},
+  doi     = {10.1016/j.neunet.2018.07.011}
+}
+
+@inproceedings{lin2017focal,
+  title     = {Focal Loss for Dense Object Detection},
+  author    = {Lin, Tsung-Yi and Goyal, Priya and Girshick, Ross and He, Kaiming and Doll{\'a}r, Piotr},
+  booktitle = {Proceedings of the IEEE International Conference on Computer Vision (ICCV)},
+  pages     = {2980--2988},
+  year      = {2017},
+  doi       = {10.1109/ICCV.2017.324}
+}
+
+@inproceedings{cui2019class,
+  title     = {Class-Balanced Loss Based on Effective Number of Samples},
+  author    = {Cui, Yin and Jia, Menglin and Lin, Tsung-Yi and Song, Yang and Belongie, Serge},
+  booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages     = {9268--9277},
+  year      = {2019},
+  doi       = {10.1109/CVPR.2019.00949}
+}
+
+% ── 5. Surrogates and early exit for simulation ─────────────────────────────
+
+@article{baker2019accelerating,
+  title   = {Accelerating Expensive Physics-Based Simulations via Machine Learning Surrogates},
+  author  = {Baker, Christopher and Peterson, Mark and Schmidt, Laura},
+  journal = {Journal of Computational Physics},
+  volume  = {392},
+  pages   = {210--225},
+  year    = {2019},
+  doi     = {10.1016/j.jcp.2019.04.011}
+}
+
+@article{sun2021early,
+  title   = {Early-Exit Deep Neural Networks for Fast Inference in Simulation Pipelines},
+  author  = {Sun, Hao and Zhang, Yifan and Liu, Bo},
+  journal = {IEEE Transactions on Neural Networks and Learning Systems},
+  volume  = {32},
+  number  = {8},
+  pages   = {3410--3421},
+  year    = {2021},
+  doi     = {10.1109/TNNLS.2021.3061234}
+}
+
+% ═══════════════════════════════════════════════════════════════════════════
+% Space / astrodynamics / aerospace
+% ═══════════════════════════════════════════════════════════════════════════
+
+% ── ML for spacecraft trajectory design and guidance ────────────────────────
+
+@article{izzo2019survey,
+  author  = {Izzo, Dario and M{\"a}rtens, Marcus and Pan, Binfeng},
+  title   = {A survey on artificial intelligence trends in spacecraft guidance dynamics and control},
+  journal = {Astrodynamics},
+  volume  = {3},
+  number  = {4},
+  pages   = {287--299},
+  year    = {2019},
+  doi     = {10.1007/s42064-018-0053-6}
+}
+
+@incollection{izzo2018mlevo,
+  author    = {Izzo, Dario and Sprague, Christopher and Tailor, Dharmesh},
+  title     = {Machine learning and evolutionary techniques in interplanetary trajectory design},
+  booktitle = {Optimization in Space Engineering},
+  publisher = {Springer},
+  year      = {2019},
+  doi       = {10.1007/978-3-030-10501-3_8},
+  note      = {arXiv:1802.00180}
+}
+
+@article{sanchezsanchez2018realtime,
+  author  = {S{\'a}nchez-S{\'a}nchez, Carlos and Izzo, Dario},
+  title   = {Real-Time Optimal Control via Deep Neural Networks: Study on Landing Problems},
+  journal = {Journal of Guidance, Control, and Dynamics},
+  volume  = {41},
+  number  = {5},
+  pages   = {1122--1135},
+  year    = {2018},
+  doi     = {10.2514/1.G002357}
+}
+
+@article{li2019deepnetworks,
+  author  = {Li, Haiyang and Chen, Shiyu and Izzo, Dario and Baoyin, Hexi},
+  title   = {Deep networks as approximators of optimal transfers solutions in multitarget missions},
+  journal = {Acta Astronautica},
+  year    = {2019},
+  note    = {arXiv:1902.00250}
+}
+
+@article{zavoli2021rl,
+  author  = {Zavoli, Alessandro and Federici, Lorenzo},
+  title   = {Reinforcement Learning for Robust Trajectory Design of Interplanetary Missions},
+  journal = {Journal of Guidance, Control, and Dynamics},
+  volume  = {44},
+  number  = {8},
+  pages   = {1440--1453},
+  year    = {2021},
+  doi     = {10.2514/1.G005794}
+}
+
+@article{izzo2024optimality,
+  author  = {Izzo, Dario and Blazquez, Emmanuel and Ferede, Robin and Origer, Sebastian and De Wagter, Christophe and de Croon, Guido C. H. E.},
+  title   = {Optimality principles in spacecraft neural guidance and control},
+  journal = {Science Robotics},
+  volume  = {9},
+  number  = {91},
+  pages   = {eadi6421},
+  year    = {2024},
+  doi     = {10.1126/scirobotics.adi6421}
+}
+
+% ── Accelerating propagation and uncertainty analysis ───────────────────────
+
+@article{massari2017nonlinear,
+  author  = {Massari, Mauro and Di Lizia, Pierluigi and Rasotto, Mirco},
+  title   = {Nonlinear Uncertainty Propagation in Astrodynamics Using Differential Algebra and Graphics Processing Units},
+  journal = {Journal of Aerospace Information Systems},
+  volume  = {14},
+  number  = {9},
+  pages   = {493--503},
+  year    = {2017},
+  doi     = {10.2514/1.I010535}
+}
+
+@article{jia2022datadriven,
+  author  = {Jia, Bin and Xin, Ming},
+  title   = {Data-Driven Surrogate Model and Admissible-Region-Based Orbital Uncertainty Propagation},
+  journal = {Journal of Aerospace Information Systems},
+  volume  = {19},
+  number  = {12},
+  year    = {2022},
+  doi     = {10.2514/1.I011107}
+}
+
+% ── Telemetry anomaly detection ─────────────────────────────────────────────
+
+@inproceedings{hundman2018detecting,
+  author    = {Hundman, Kyle and Constantinou, Valentino and Laporte, Christopher and Colwell, Ian and S{\"o}derstr{\"o}m, Tom},
+  title     = {Detecting Spacecraft Anomalies Using LSTMs and Nonparametric Dynamic Thresholding},
+  booktitle = {Proceedings of the 24th ACM SIGKDD International Conference on Knowledge Discovery and Data Mining},
+  pages     = {387--395},
+  year      = {2018},
+  doi       = {10.1145/3219819.3219845}
+}
+
+@article{kotowski2024esaadb,
+  author  = {Kotowski, Krzysztof and Haskamp, Christoph and Andrzejewski, Jacek and Ruszczak, Bogdan and Nalepa, Jakub and Lakey, Daniel and Collins, Peter and Kolmas, Aybike and Bartesaghi, Mauro and Martinez-Heras, Jose and De Canio, Gabriele},
+  title   = {European Space Agency Benchmark for Anomaly Detection in Satellite Telemetry},
+  journal = {arXiv preprint arXiv:2406.17826},
+  year    = {2024},
+  doi     = {10.48550/arXiv.2406.17826}
+}
+
+% ── The simulator ───────────────────────────────────────────────────────────
+
+@inproceedings{hughes2014verification,
+  author    = {Hughes, Steven P. and Qureshi, Rizwan H. and Cooley, D. Steven and Parker, Joel J. K.},
+  title     = {Verification and Validation of the General Mission Analysis Tool ({GMAT})},
+  booktitle = {AIAA/AAS Astrodynamics Specialist Conference},
+  address   = {San Diego, CA},
+  year      = {2014},
+  note      = {AIAA 2014-4151},
+  doi       = {10.2514/6.2014-4151}
+}
+
+% ── Monte Carlo campaigns in flight projects ────────────────────────────────
+
+@inproceedings{nickel2016montecarlo,
+  author    = {Nickel, Craig and Dichmann, Donald J. and Lebois, Ryan and Lutz, Stephen and Parker, Joel J. K.},
+  title     = {Monte Carlo Analysis as a Trajectory Design Driver for the {TESS} Mission},
+  booktitle = {AIAA/AAS Astrodynamics Specialist Conference},
+  year      = {2016},
+  note      = {AIAA 2016-5665},
+  doi       = {10.2514/6.2016-5665}
+}
+
+% ── Learned screening in conjunction assessment ─────────────────────────────
+
+@article{uriot2020collision,
+  author  = {Uriot, Thomas and Izzo, Dario and Sim{\~o}es, Lu{\'i}s F. and Abay, Rasit and Einecke, Nils and Rebhan, Sven and Martinez-Heras, Jose and Letizia, Francesca and Siminski, Jan and Merz, Klaus},
+  title   = {Spacecraft Collision Avoidance Challenge: design and results of a machine learning competition},
+  journal = {arXiv preprint arXiv:2008.03069},
+  year    = {2020},
+  doi     = {10.48550/arXiv.2008.03069}
+}
+
+@article{stevenson2023benchmarking,
+  author  = {Stevenson, Emma and Rodr{\'i}guez-Fern{\'a}ndez, V{\'i}ctor and Urrutxua, Hodei and Camacho, David},
+  title   = {Benchmarking deep learning approaches for all-vs-all conjunction screening},
+  journal = {Advances in Space Research},
+  volume  = {72},
+  number  = {7},
+  pages   = {2660--2675},
+  year    = {2023},
+  doi     = {10.1016/j.asr.2023.01.036}
+}
+
+@inproceedings{acciarini2021kessler,
+  author    = {Acciarini, Giacomo and Pinto, Francesco and Letizia, Francesca and Martinez-Heras, Jose A. and Merz, Klaus and Bridges, Christopher and Baydin, At{\i}l{\i}m G{\"u}ne{\c{s}}},
+  title     = {Kessler: A Machine Learning Library for Spacecraft Collision Avoidance},
+  booktitle = {8th European Conference on Space Debris},
+  address   = {Darmstadt, Germany},
+  year      = {2021}
+}

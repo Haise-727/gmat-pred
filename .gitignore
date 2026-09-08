@@ -79,8 +79,26 @@ reports/**
 !reports/**/*.md
 !reports/**/*.tex
 
+# One binary exception. prediction_traces.npz is the raw held-out P(fail) behind
+# Figure 2 of the paper — 64 KB, and the only artifact in the repository that
+# lets someone redraw that figure without first re-training the ablation, whose
+# checkpoints are (correctly) ignored above.
+!reports/prediction_traces.npz
+
 # Parquet split temps
 data/_*_split.parquet
 
 # Detached pipeline logs
 .runlogs/
+
+# LaTeX build intermediates. The .tex is generated from docs/paper/content.py
+# and the .pdf is committed as the paper deliverable, but everything the engine
+# writes on the way there is noise in a diff.
+docs/paper/*.aux
+docs/paper/*.bbl
+docs/paper/*.blg
+docs/paper/*.out
+docs/paper/*.toc
+docs/paper/*.synctex.gz
+docs/paper/*.fls
+docs/paper/*.fdb_latexmk

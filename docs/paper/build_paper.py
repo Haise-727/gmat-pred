@@ -1,15 +1,22 @@
 """
-Build the OrbitGuard methods paper as a .docx.
+Render the paper to a two-column IEEE-style .docx.
 
-Every quantitative claim in the prose is read from a JSON artifact in reports/
-rather than typed in, so the paper cannot drift from the experiments. If a
-number here looks wrong, re-run the experiment that produces it — do not edit
-the number.
+This is the reading copy. The submission copy is the IEEEtran LaTeX source next
+to it (docs/paper/render_latex.py), and both are rendered from the same document
+model in content.py, so they cannot disagree about what the paper says.
 
-    reports/normalisation_ablation.json   src/ml/norm_ablation.py       (C1)
-    reports/baseline_invariance.json      src/ml/baseline_invariance.py (C1b)
-    reports/rare_mode_sweep.json          src/ml/rare_mode_sweep.py     (C2)
-    reports/prune_economics.json          src/ml/prune_economics.py     (C3)
+Neither renderer holds any prose or any number of its own. To change wording,
+edit content.py. To change a number, re-run the experiment that produces the
+artifact it comes from — the number is not typed in anywhere.
+
+Two things this renderer has to do by hand that LaTeX does for free:
+
+  * Citations. content.py writes [@key]; IEEE style wants [1]. Keys are numbered
+    in order of first appearance and the reference list is generated from
+    references.bib at the end.
+  * Wide floats. A full-width table or figure in a two-column document needs the
+    column count to drop to one and come back, which in Word means a pair of
+    continuous section breaks around the float.
 
 Usage:
     python docs/paper/build_paper.py
@@ -19,544 +26,411 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import json
+import re
 import sys
 from pathlib import Path
 
 from docx import Document
-from docx.shared import Inches
+from docx.enum.section import WD_SECTION
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+from docx.shared import Inches, Pt, RGBColor
 
-sys.path.insert(0, str(Path(__file__).parent))
-from docx_helpers import (abstract, bullets, caption, code_block, para,
-                          setup_styles, table, title_block)
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
 
-REPO = Path(__file__).resolve().parents[2]
-REPORTS = REPO / "reports"
+from content import CITE_RE, REF_RE, document                      # noqa: E402
 
-TITLE = ("Scale-Invariant Baselines Can Certify a Broken Deep Model: "
-         "Grouped-Normalisation Collapse in Learned Simulation Screening")
-AUTHORS = "Harsha Sakamuri, Rohit Michael"
-AFFILIATION = "OrbitGuard Research Group"
+BODY_FONT = "Times New Roman"
+MONO_FONT = "Consolas"
+FIGDIR = HERE / "figures"
+BIB = HERE / "references.bib"
 
+COL_W = Inches(3.4)      # one IEEE column
+FULL_W = Inches(7.0)     # both columns
 
+MARKER_RE = re.compile(f"(?:{CITE_RE.pattern})|(?:{REF_RE.pattern})")
 
-def load(name: str) -> dict | None:
-    p = REPORTS / name
-    if not p.exists():
-        print(f"  WARNING: {p} missing — sections depending on it will be stubbed")
-        return None
-    return json.loads(p.read_text())
-
-
-def f4(x) -> str:
-    return "—" if x is None else f"{x:.4f}"
+ROMAN = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X",
+         "XI", "XII", "XIII", "XIV", "XV"]
 
 
-def pct(x, dp=1) -> str:
-    return "—" if x is None else f"{100*x:.{dp}f}%"
+# ── bibliography ─────────────────────────────────────────────────────────────
+
+def parse_bib(path: Path) -> dict[str, dict]:
+    """
+    A deliberately small BibTeX reader: enough for our own file, not general.
+
+    It handles the one nesting level our entries actually use (braced values
+    containing braced groups, e.g. {S{\\'a}nchez}) and ignores everything else.
+    """
+    entries: dict[str, dict] = {}
+    if not path.exists():
+        return entries
+    text = path.read_text()
+    for m in re.finditer(r"@(\w+)\s*\{\s*([^,]+),", text):
+        key = m.group(2).strip()
+        # Walk forward from the entry header to its matching close brace.
+        i, depth = m.end() - 1, 1
+        while i + 1 < len(text) and depth:
+            i += 1
+            if text[i] == "{":
+                depth += 1
+            elif text[i] == "}":
+                depth -= 1
+        body = text[m.end():i]
+        fields = {}
+        for fm in re.finditer(r"(\w+)\s*=\s*\{", body):
+            j, d = fm.end() - 1, 1
+            while j + 1 < len(body) and d:
+                j += 1
+                if body[j] == "{":
+                    d += 1
+                elif body[j] == "}":
+                    d -= 1
+            fields[fm.group(1).lower()] = body[fm.end():j].strip()
+        fields["_type"] = m.group(1).lower()
+        entries[key] = fields
+    return entries
 
 
-def sci(x) -> str:
-    """Scientific notation, tolerant of a missing artifact."""
-    return "—" if x is None else f"{x:.2e}"
+def detex(s: str) -> str:
+    """Undo the LaTeX accent escapes our .bib uses, for plain-text output."""
+    repl = {
+        r"{\"o}": "ö", r"{\"a}": "ä", r"{\"u}": "ü", r"{\"O}": "Ö",
+        r"{\'e}": "é", r"{\'a}": "á", r"{\'i}": "í", r"{\'o}": "ó",
+        r"{\'{\i}}": "í", r"{\i}": "ı", r"{\~o}": "õ", r"{\~a}": "ã",
+        r"{\c{s}}": "ş", r"{\c{c}}": "ç", r"{\v{s}}": "š",
+    }
+    for a, b in repl.items():
+        s = s.replace(a, b)
+    return s.replace("{", "").replace("}", "").replace("\\", "")
+
+
+def format_authors(raw: str) -> str:
+    """'Last, First and Last, First' -> 'F. Last, F. Last' (IEEE order)."""
+    names = []
+    for person in detex(raw).split(" and "):
+        person = person.strip()
+        if "," in person:
+            last, first = [x.strip() for x in person.split(",", 1)]
+        else:
+            bits = person.split()
+            last, first = bits[-1], " ".join(bits[:-1])
+        initials = " ".join(f"{b[0]}." for b in first.split() if b)
+        names.append(f"{initials} {last}".strip())
+    if len(names) > 6:
+        return names[0] + " et al."
+    return ", ".join(names)
+
+
+def format_reference(e: dict) -> str:
+    """One IEEE-ish reference string. Not a substitute for IEEEtran.bst."""
+    authors = format_authors(e.get("author", ""))
+    parts = [f"{authors}," if authors else "",
+             f'"{detex(e.get("title", ""))},"']
+    if e.get("journal"):
+        parts.append(f"{detex(e['journal'])},")
+    elif e.get("booktitle"):
+        parts.append(f"in {detex(e['booktitle'])},")
+    if e.get("volume"):
+        parts.append(f"vol. {e['volume']},")
+    if e.get("number"):
+        parts.append(f"no. {e['number']},")
+    if e.get("pages"):
+        parts.append(f"pp. {e['pages'].replace('--', '–')},")
+    if e.get("year"):
+        parts.append(f"{e['year']}.")
+    if e.get("doi"):
+        parts.append(f"doi: {e['doi']}.")
+    return " ".join(parts)
+
+
+# ── docx plumbing ────────────────────────────────────────────────────────────
+
+def set_columns(section, n: int) -> None:
+    """Set the column count on a section. python-docx has no API for this."""
+    cols = section._sectPr.xpath("./w:cols")[0]
+    cols.set(qn("w:num"), str(n))
+    cols.set(qn("w:space"), "360")          # ~0.25 in gutter
+
+
+def setup(doc: Document) -> None:
+    normal = doc.styles["Normal"]
+    normal.font.name = BODY_FONT
+    normal.font.size = Pt(9.5)
+    pf = normal.paragraph_format
+    pf.space_after = Pt(0)
+    pf.first_line_indent = Inches(0.18)
+    pf.line_spacing = 1.0
+    pf.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+
+    for name, size in [("Heading 1", 10), ("Heading 2", 9.5), ("Heading 3", 9.5)]:
+        st = doc.styles[name]
+        st.font.name = BODY_FONT
+        st.font.size = Pt(size)
+        st.font.bold = False
+        st.font.color.rgb = RGBColor(0, 0, 0)
+        st.paragraph_format.space_before = Pt(8)
+        st.paragraph_format.space_after = Pt(3)
+        st.paragraph_format.first_line_indent = Inches(0)
+
+    for s in doc.sections:
+        s.left_margin = s.right_margin = Inches(0.62)
+        s.top_margin = Inches(0.75)
+        s.bottom_margin = Inches(0.75)
+
+
+def rich(p, text: str, cites: dict, refs: dict, size=9.5) -> None:
+    """
+    Add `text` to paragraph `p`, resolving [@key] and [#label] markers.
+
+    `cites` is the running key -> number map; `refs` maps a float label to its
+    printed number. Both are mutated by the caller as the document is walked.
+    """
+    last = 0
+    for m in MARKER_RE.finditer(text):
+        if m.start() > last:
+            r = p.add_run(text[last:m.start()])
+            r.font.size = Pt(size)
+        body = m.group(0)
+        if body.startswith("[@"):
+            nums = []
+            for k in body[2:-1].split(","):
+                k = k.strip()
+                if k not in cites:
+                    cites[k] = len(cites) + 1
+                nums.append(cites[k])
+            r = p.add_run("[" + ", ".join(str(n) for n in sorted(nums)) + "]")
+        else:
+            label = body[2:-1]
+            kind = "Fig." if label.startswith("fig:") else "Table"
+            r = p.add_run(f"{kind} {refs.get(label, '?')}")
+        r.font.size = Pt(size)
+        last = m.end()
+    if last < len(text):
+        r = p.add_run(text[last:])
+        r.font.size = Pt(size)
+
+
+def number_floats(doc_blocks) -> dict[str, str]:
+    """Assign figure and table numbers in document order, before rendering."""
+    refs, nfig, ntab = {}, 0, 0
+    for kind, payload in doc_blocks:
+        if kind == "figure":
+            nfig += 1
+            refs[payload["label"]] = str(nfig)
+        elif kind == "table":
+            ntab += 1
+            refs[payload["label"]] = ROMAN[ntab] if ntab < len(ROMAN) else str(ntab)
+    return refs
+
+
+def add_float(doc, wide: bool, render) -> None:
+    """
+    Run `render` inside a one-column island if `wide`, else render in place.
+
+    Word models a column-count change as a section boundary, so a full-width
+    float in a two-column document is: continuous break to 1 column, the float,
+    continuous break back to 2.
+    """
+    if not wide:
+        render()
+        return
+    s = doc.add_section(WD_SECTION.CONTINUOUS)
+    set_columns(s, 1)
+    s.left_margin = s.right_margin = Inches(0.62)
+    render()
+    s2 = doc.add_section(WD_SECTION.CONTINUOUS)
+    set_columns(s2, 2)
+    s2.left_margin = s2.right_margin = Inches(0.62)
+
+
+def render_table(doc, t: dict, num: str, cites, refs) -> None:
+    cap = doc.add_paragraph()
+    cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    cap.paragraph_format.first_line_indent = Inches(0)
+    cap.paragraph_format.space_before = Pt(6)
+    r = cap.add_run(f"TABLE {num}\n")
+    r.font.size = Pt(8)
+    rich(cap, t["caption"], cites, refs, size=8)
+
+    headers = t["headers"]
+    tab = doc.add_table(rows=1, cols=len(headers))
+    tab.style = "Table Grid"
+    tab.autofit = True
+
+    for i, h in enumerate(headers):
+        cell = tab.rows[0].cells[i]
+        cell.text = ""
+        run = cell.paragraphs[0].add_run(str(h))
+        run.bold = True
+        run.font.size = Pt(7.5)
+        cell.paragraphs[0].paragraph_format.first_line_indent = Inches(0)
+
+    for ri, row in enumerate(t["rows"]):
+        cells = tab.add_row().cells
+        for i, v in enumerate(row):
+            cells[i].text = ""
+            run = cells[i].paragraphs[0].add_run(str(v))
+            run.font.size = Pt(7.5)
+            run.bold = bool(t.get("bold_first_row") and ri == 0)
+            cells[i].paragraphs[0].paragraph_format.first_line_indent = Inches(0)
+    doc.add_paragraph().paragraph_format.space_after = Pt(4)
+
+
+def render_figure(doc, f: dict, num: str, cites, refs) -> None:
+    png = FIGDIR / f"{f['stem']}.png"
+    if png.exists():
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p.paragraph_format.first_line_indent = Inches(0)
+        p.add_run().add_picture(str(png),
+                                width=FULL_W if f.get("wide") else COL_W)
+    cap = doc.add_paragraph()
+    cap.paragraph_format.first_line_indent = Inches(0)
+    cap.paragraph_format.space_after = Pt(6)
+    r = cap.add_run(f"Fig. {num}.  ")
+    r.font.size = Pt(8)
+    r.bold = True
+    rich(cap, f["caption"], cites, refs, size=8)
 
 
 def build(out_path: Path) -> None:
-    norm = load("normalisation_ablation.json")
-    inv = load("baseline_invariance.json")
-    rare = load("rare_mode_sweep.json")
-    econ = load("prune_economics.json")
+    blocks = document()
+    meta = next(v for k, v in blocks if k == "title")
+    refs = number_floats(blocks)
+    cites: dict[str, int] = {}
 
     doc = Document()
-    setup_styles(doc)
-    for s in doc.sections:
-        s.left_margin = s.right_margin = Inches(0.9)
-        s.top_margin = s.bottom_margin = Inches(0.9)
+    setup(doc)
 
-    title_block(doc, TITLE, AUTHORS, AFFILIATION,
-                "Draft — generated from measured artifacts by "
-                "docs/paper/build_paper.py")
+    # ── title block, full width ──────────────────────────────────────────────
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p.paragraph_format.first_line_indent = Inches(0)
+    r = p.add_run(meta["title"])
+    r.font.size = Pt(20)
+    for line, size, italic in [(", ".join(meta["authors"]), 11, False),
+                               (meta["affiliation"], 10, True)]:
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p.paragraph_format.first_line_indent = Inches(0)
+        r = p.add_run(line)
+        r.font.size = Pt(size)
+        r.italic = italic
+    doc.add_paragraph().paragraph_format.space_after = Pt(6)
 
-    # ── Abstract ─────────────────────────────────────────────────────────────
-    v = norm["paired"][0] if norm and norm["paired"] else {}
-    ex_planet = v.get("planet", "venus")
-    ex_good = v.get("val_auc_per-timestep")
-    ex_bad = v.get("val_auc_grouped")
-    ex_std = v.get("pred_std_grouped")
-    tree_spread = max(inv["tree_auc_spread_across_conditions"].values()) if inv else None
-    n_planets = len(norm["paired"]) if norm else 0
-    n_collapsed = sum(1 for p in (norm or {}).get("paired", [])
-                      if p.get("collapsed_grouped"))
-    worst = min(norm["paired"], key=lambda p: p["val_auc_grouped"]) if norm else {}
-    others = sorted(abs(p["val_auc_gain_vs_grouped"])
-                    for p in (norm or {}).get("paired", [])
-                    if not p.get("collapsed_grouped"))
-    other_lo = others[0] if others else None
-    other_hi = others[-1] if others else None
+    # Everything from here on is two-column.
+    body = doc.add_section(WD_SECTION.CONTINUOUS)
+    set_columns(body, 2)
+    body.left_margin = body.right_margin = Inches(0.62)
 
-    abstract(doc,
-        f"Sharing one feature scaler across heterogeneous groups is a routine "
-        f"preprocessing choice. We show it can silently destroy a sequence model "
-        f"while every standard sanity check reports success. On a corpus of "
-        f"70,000 simulated interplanetary trajectories across seven targets, a "
-        f"Transformer trained under a scaler pooled across a group of targets "
-        f"degenerates on {worst.get('planet', 'one target').capitalize()} to a "
-        f"constant output: held-out prediction standard deviation "
-        f"{sci(worst.get('pred_std_grouped'))} and validation AUC "
-        f"{f4(worst.get('val_auc_grouped'))}, against "
-        f"{f4(worst.get('val_auc_per-timestep'))} for the identical "
-        f"architecture under per-timestep normalisation. A gradient-boosted tree "
-        f"fitted to the same arrays under the same preprocessing is unaffected: "
-        f"its AUC varies by at most {f4(tree_spread)} across all three "
-        f"normalisation conditions, reporting near-perfect separability while "
-        f"the network cannot discriminate at all. The practitioner's instinct to "
-        f"validate a pipeline with a simple baseline therefore fails precisely "
-        f"here, because trees are invariant to the defect that destroys the "
-        f"network. The effect is severe but not universal: {n_collapsed} of "
-        f"{n_planets} targets collapses outright, while the remainder lose "
-        f"{f4(other_lo)} to {f4(other_hi)} AUC without collapsing, and we report "
-        f"the conditions under which it does and does not appear. We decompose "
-        f"the cause — pooling across timesteps is survivable, pooling across "
-        f"groups is not — give a diagnostic based on prediction variance rather "
-        f"than accuracy, and report a second failure in which the same model "
-        f"cannot reach a rare class that a tree separates from its own input.")
+    n_sec = 0
+    n_sub = 0
+    for kind, payload in blocks:
+        if kind == "title":
+            continue
 
-    # ── 1. Introduction ──────────────────────────────────────────────────────
-    doc.add_heading("1  Introduction", level=1)
-    para(doc,
-        "Monte Carlo trajectory campaigns spend most of their compute on runs "
-        "that were doomed at injection. A natural response is to learn a screen: "
-        "watch the early trajectory and cancel the runs that will fail. Building "
-        "that screen surfaced two failures that we believe generalise well beyond "
-        "astrodynamics, and one negative result about the screen itself.")
-    para(doc,
-        "The first failure is the subject of this paper. A deep model trained on "
-        "grouped data, with one feature scaler fitted across the group, collapsed "
-        "to emitting a single constant per group. It was not detected for a long "
-        "time, and the reason it was not detected is the interesting part: every "
-        "check that would normally catch it reported that the pipeline was "
-        "healthy. Validation AUC was high, because a mixed validation set lets a "
-        "model score well by ranking groups against each other without "
-        "discriminating within any of them. A gradient-boosted baseline on the "
-        "identical arrays reported near-perfect performance, because trees split "
-        "on absolute values and are invariant to the scaling that the network "
-        "depends on.")
-    para(doc,
-        "We make three contributions. (i) A controlled decomposition of the "
-        "collapse, isolating pooling across timesteps from pooling across groups "
-        "and showing only the latter is fatal. (ii) A demonstration that a "
-        "scale-invariant baseline actively certifies the broken configuration, "
-        "with a diagnostic that catches it. (iii) A second failure of the same "
-        "model class — an inability to reach a rare class that is linearly "
-        "recoverable from its own input — which is measurable rather than "
-        "speculative.")
-    para(doc,
-        "All numbers in this paper are produced by scripts in the accompanying "
-        "repository and written to machine-readable artifacts; the paper itself "
-        "is generated from those artifacts.")
+        elif kind == "abstract":
+            p = doc.add_paragraph()
+            p.paragraph_format.first_line_indent = Inches(0.18)
+            r = p.add_run("Abstract—")
+            r.bold = True
+            r.font.size = Pt(9)
+            rich(p, payload, cites, refs, size=9)
 
-    # ── 2. Setup ─────────────────────────────────────────────────────────────
-    doc.add_heading("2  Setup", level=1)
-    doc.add_heading("2.1  Task and data", level=2)
-    para(doc,
-        "The corpus is 70,000 simulated Earth-departure missions across seven "
-        "interplanetary targets (Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune), "
-        "10,000 per target, generated from a deterministic two/three-body GMAT propagator. "
-        "Each mission is parameterised by six injection offsets — three components of the "
-        "trans-orbit-insertion burn (dv_V, dv_N, dv_B) and three parking-orbit angles "
-        "(RAAN, AOP, INC) — and labelled success or failure, with failures further typed "
-        "by physical mode (surface impact, orbit too high, missed target, and others). "
-        "Telemetry is sampled at a fixed cadence (54,000 s / 15 hours for interplanetary "
-        "transfers) and downsampled to roughly 100 steps per mission so that targets whose "
-        "flight times differ by two orders of magnitude yield comparable sequence lengths. "
-        "An eighth target generated in the raw corpus (the Moon) is explicitly excluded "
-        "from the primary study set, as it represents a short 6-day Earth-centric transfer "
-        "at 60 s cadence that shares neither the cost structure nor the dynamical regime of "
-        "heliocentric transfers.")
-    para(doc,
-        "The screening task is: observe the first 40% of a mission's trajectory "
-        "and decide whether to abort. Splits are 70/15/15 by mission, "
-        "deterministic in (n, seed), and shared by every experiment through a "
-        "single definition (src/ml/splits.py) so that no model is evaluated on data "
-        "used to select it. To ensure complete external reproducibility, the dataset is "
-        "structured as a full 71 GB parquet telemetry table alongside a compact, "
-        "stand-alone 500 MB per-planet .npz benchmark release (holding float64 sequences "
-        "and ground-truth outcome labels).")
+        elif kind == "keywords":
+            p = doc.add_paragraph()
+            r = p.add_run("Index Terms—")
+            r.italic = True
+            r.font.size = Pt(9)
+            r2 = p.add_run(", ".join(payload))
+            r2.font.size = Pt(9)
+            doc.add_paragraph().paragraph_format.space_after = Pt(2)
 
+        elif kind == "h1":
+            n_sec += 1
+            n_sub = 0
+            h = doc.add_heading("", level=1)
+            h.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            num = ROMAN[n_sec] if n_sec < len(ROMAN) else str(n_sec)
+            r = h.add_run(f"{num}.  {payload}")
+            r.font.size = Pt(10)
+            r.font.name = BODY_FONT
 
-    doc.add_heading("2.2  Models", level=2)
-    para(doc,
-        "The sequence model is a Pre-LN Transformer encoder (d_model 128, 8 "
-        "heads, 4 layers, CLS pooling) with two heads sharing a trunk: mission "
-        "outcome and failure mode. It is trained on random prefixes so it is "
-        "in-distribution at any streaming position. The baseline is XGBoost (300 "
-        "trees, depth 5) fitted to the same normalised prefix, flattened. "
-        "Throughout, 'identical input' means literally the same array: the "
-        "baseline consumes the view the network receives, not a re-derived "
-        "feature set.")
+        elif kind == "h2":
+            n_sub += 1
+            h = doc.add_heading("", level=2)
+            r = h.add_run(f"{chr(64 + n_sub)}.  {payload}")
+            r.italic = True
+            r.font.size = Pt(9.5)
+            r.font.name = BODY_FONT
 
-    doc.add_heading("2.3  Normalisation conditions", level=2)
-    para(doc,
-        "Three conditions differ only in how the feature statistics are pooled. "
-        "Architecture, seed, split, optimiser and epoch budget are held fixed.")
-    bullets(doc, [
-        "per-timestep — each feature standardised against its distribution at "
-        "that timestep index across missions of one target. This is the "
-        "production configuration.",
-        "global — one RobustScaler (median, IQR) per target, pooled across all "
-        "timesteps of that target.",
-        "grouped — one RobustScaler pooled across all timesteps of every target "
-        "in a regime group (inner: Mercury, Venus, Mars; outer: Jupiter, Saturn, "
-        "Uranus, Neptune). This reproduces the configuration that failed.",
-    ])
+        elif kind == "p":
+            p = doc.add_paragraph()
+            rich(p, payload, cites, refs)
 
-    # ── 3. Collapse ──────────────────────────────────────────────────────────
-    doc.add_heading("3  Grouped-Normalisation Collapse", level=1)
-    doc.add_heading("3.1  Mechanism", level=2)
-    para(doc,
-        "A mission's features sweep a wide range over its flight, and different "
-        "targets occupy ranges that differ by orders of magnitude. A scaler "
-        "fitted over a pooled set therefore has its scale set by the largest "
-        "source of variation in the pool. What the screen must actually "
-        "discriminate is none of those: it is the mission-to-mission spread at a "
-        "given point in flight, which is small by comparison. Pooling divides "
-        "that spread by a denominator chosen for something else, compressing the "
-        "discriminative signal toward zero while leaving the between-group "
-        "structure intact.")
-    para(doc,
-        "We quantify this as the signal ratio: the mean across-mission standard "
-        "deviation of the normalised features, measured inside the observed "
-        "window only. The restriction matters. Averaged over the whole flight the "
-        "metric is uninformative, because late timesteps carry enormous "
-        "across-mission spread — failing trajectories have physically diverged by "
-        "then — which swamps the early signal and makes every condition look "
-        "healthy. The model commits at 40%, so the relevant quantity is the "
-        "spread inside the prefix it sees.")
+        elif kind == "bullets":
+            for item in payload:
+                p = doc.add_paragraph(style="List Bullet")
+                p.paragraph_format.first_line_indent = Inches(0)
+                p.paragraph_format.space_after = Pt(2)
+                rich(p, item, cites, refs, size=9)
 
-    doc.add_heading("3.2  Controlled ablation", level=2)
-    if norm:
-        rows = []
-        for p in norm["paired"]:
-            rows.append([
-                p["planet"].capitalize(),
-                f"{p['signal_per-timestep']:.4f}", f4(p["val_auc_per-timestep"]),
-                f"{p['pred_std_per-timestep']:.2e}",
-                f"{p['signal_global']:.4f}", f4(p["val_auc_global"]),
-                f"{p['pred_std_global']:.2e}",
-                f"{p['signal_grouped']:.4f}", f4(p["val_auc_grouped"]),
-                f"{p['pred_std_grouped']:.2e}",
-            ])
-        table(doc, "Table 1  Normalisation ablation. Identical architecture, "
-                   "seed and split; only pooling differs. 'signal' is the mean "
-                   "within-timestep standard deviation of normalised features in "
-                   "the observed window; 'std' is the standard deviation of "
-                   "P(fail) over the held-out split.",
-              ["Target", "sig", "AUC", "std", "sig", "AUC", "std",
-               "sig", "AUC", "std"], rows)
-        caption(doc, "Columns 2–4 per-timestep, 5–7 global, 8–10 grouped.")
+        elif kind == "table":
+            num = refs[payload["label"]]
+            add_float(doc, payload.get("wide", False),
+                      lambda t=payload, n=num: render_table(doc, t, n, cites, refs))
 
-        collapsed = [p["planet"].capitalize() for p in norm["paired"]
-                     if p.get("collapsed_grouped")]
-        survived_global = [p["planet"] for p in norm["paired"]
-                           if not p.get("collapsed_global")]
-        para(doc,
-            f"The decomposition is the first result. Pooling across timesteps "
-            f"within a single target compresses the signal by one to two orders "
-            f"of magnitude and yet the network still discriminates: it survives "
-            f"on {len(survived_global)} of {len(norm['paired'])} targets, losing "
-            f"at most a few thousandths of AUC. Pooling across a group is "
-            f"qualitatively different, and on "
-            f"{', '.join(collapsed) if collapsed else 'no target'} it is "
-            f"catastrophic — held-out output standard deviation "
-            f"{sci(worst.get('pred_std_grouped'))}, meaning the network emits "
-            f"one number for every mission regardless of input, with AUC "
-            f"falling from {f4(worst.get('val_auc_per-timestep'))} to "
-            f"{f4(worst.get('val_auc_grouped'))}.")
-        para(doc,
-            f"The second result is that the collapse is selective, and we report "
-            f"this rather than only the case that fails. On the remaining "
-            f"{len(norm['paired']) - len(collapsed)} targets the same "
-            f"manipulation costs between {f4(other_lo)} and {f4(other_hi)} AUC "
-            f"and does not collapse the output. Severity does not follow the "
-            f"signal ratio alone: Jupiter's signal is compressed to "
-            f"{[p['signal_grouped'] for p in norm['paired'] if p['planet'] == 'jupiter'][0]:.4f} "
-            f"— comparable to Mercury's — yet it loses almost nothing, because "
-            f"its task is separable enough that even a heavily attenuated signal "
-            f"suffices. Compression is necessary for the collapse but not "
-            f"sufficient; task difficulty modulates it. A predictive rule of the "
-            f"form 'collapse when the ratio falls below X' is therefore not "
-            f"supported by these data, and we do not claim one.")
-        para(doc,
-            "One scope note. This ablation isolates the normalisation factor "
-            "alone: a separate model is trained per target and only the "
-            "statistics are pooled. The production incident that motivated the "
-            "study additionally shared one model across the group, which "
-            "compounds the effect — a single trunk must then serve targets whose "
-            "inputs have been flattened toward a common constant. The numbers "
-            "here are therefore a lower bound on the damage the full "
-            "configuration causes, and should be read as establishing that "
-            "pooled normalisation is sufficient on its own to destroy a target, "
-            "not as a reproduction of the original failure in its entirety.")
-    else:
-        para(doc, "[Table 1 pending: run python -m src.ml.norm_ablation]")
+        elif kind == "figure":
+            num = refs[payload["label"]]
+            add_float(doc, payload.get("wide", False),
+                      lambda f=payload, n=num: render_figure(doc, f, n, cites, refs))
 
-    doc.add_heading("3.3  The baseline certifies the broken configuration", level=2)
-    if inv:
-        rows = []
-        by = {(r["planet"], r["norm_mode"]): r for r in inv["runs"]}
-        planets = sorted({r["planet"] for r in inv["runs"]},
-                         key=lambda p: [x["planet"] for x in (norm or {}).get("paired", [])].index(p)
-                         if norm and p in [x["planet"] for x in norm["paired"]] else 99)
-        for p in planets:
-            row = [p.capitalize()]
-            for c in ["per-timestep", "global", "grouped"]:
-                row.append(f4(by.get((p, c), {}).get("tree_auc")))
-            row.append(f4(inv["tree_auc_spread_across_conditions"].get(p)))
-            rows.append(row)
-        table(doc, "Table 2  XGBoost on the identical normalised window, under "
-                   "each condition. The tree is invariant to the preprocessing "
-                   "that destroys the network.",
-              ["Target", "per-timestep", "global", "grouped", "spread"], rows)
-        wp = worst.get("planet", planets[0])
-        para(doc,
-            f"Under the grouped condition the tree reports AUC "
-            f"{f4(by.get((wp, 'grouped'), {}).get('tree_auc'))} on "
-            f"{wp.capitalize()} — the target where the network collapses to a "
-            f"constant at AUC {f4(worst.get('val_auc_grouped'))}. Across all "
-            f"targets the tree's AUC moves by at most {f4(tree_spread)} between "
-            f"conditions, so the baseline is effectively blind to the choice. A "
-            f"practitioner who runs it to check whether the features carry "
-            f"signal — the standard and correct instinct — receives an "
-            f"unambiguous yes, and concludes the deep model needs tuning rather "
-            f"than that the pipeline is broken. That is the failure this paper "
-            f"is about: not that the collapse happens, but that the check "
-            f"designed to catch this class of problem cannot see it.")
-        para(doc,
-            "This is the methodological point. The baseline is not wrong: the "
-            "information genuinely is present, and a tree genuinely can use it. "
-            "The baseline is uninformative about the question actually being "
-            "asked, which is whether the network can use it. Invariance to "
-            "feature scaling — normally a reason to prefer trees as a diagnostic "
-            "— is exactly what makes them blind here.")
-    else:
-        para(doc, "[Table 2 pending: run python -m src.ml.baseline_invariance]")
+        elif kind == "code":
+            p = doc.add_paragraph()
+            p.paragraph_format.first_line_indent = Inches(0)
+            p.paragraph_format.left_indent = Pt(8)
+            r = p.add_run(payload)
+            r.font.name = MONO_FONT
+            r.font.size = Pt(7.5)
 
-    doc.add_heading("3.4  A diagnostic that does catch it", level=2)
-    para(doc,
-        "Accuracy on a mixed validation set does not catch the collapse, because "
-        "a per-group constant ranks groups correctly and a pooled metric rewards "
-        "that. Two checks do:")
-    bullets(doc, [
-        "Prediction variance within a group. A collapsed model has near-zero "
-        "spread of its output across inputs. This is a property of the "
-        "predictions alone — no labels required — and it separates collapse from "
-        "ordinary underfitting, which produces wrong but varying predictions.",
-        "Tree-versus-network under identical preprocessing. A large gap in "
-        "favour of the tree, with both fed the same array, indicates the network "
-        "cannot exploit information that is present rather than that the "
-        "information is absent.",
-    ])
-    para(doc,
-        "Both are cheap and neither requires suspecting the specific defect in "
-        "advance. We recommend reporting per-group prediction variance alongside "
-        "aggregate metrics whenever a model is trained on grouped data with "
-        "heterogeneous scales.")
+    # ── references, numbered in order of first citation ──────────────────────
+    bib = parse_bib(BIB)
+    h = doc.add_heading("", level=1)
+    h.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    r = h.add_run("References")
+    r.font.size = Pt(10)
+    r.font.name = BODY_FONT
 
-    # ── 4. Rare mode ─────────────────────────────────────────────────────────
-    doc.add_heading("4  Failure to Reach a Present Signal", level=1)
-    if rare:
-        para(doc,
-            f"A related failure appears with correct normalisation. On "
-            f"{rare['planet'].capitalize()}, the failure mode "
-            f"'{rare['rare_mode']}' accounts for {rare['rare_mode_train_n']} of "
-            f"{rare['n_train_failures']} training failures. A tree fitted to the "
-            f"same normalised {rare['window_steps']}-step window separates that "
-            f"mode from success at AUC "
-            f"{f4(rare['tree_reference']['auc'])}. The sequence model's recall on "
-            f"it is {f4(rare['best_sequence_rare_recall'])} at its operating "
-            f"point.")
-        rows = [[f"{r['mode_alpha']:.2f}", f"{r['effective_resample_factor']:.1f}x",
-                 f4(r["test_f1"]), f4(r["overall_failure_recall"]),
-                 f4(r["rare_mode_recall"])] for r in rare["runs"]]
-        table(doc, f"Table 3  Rare-mode oversampling sweep on "
-                   f"{rare['planet'].capitalize()}. Increasing the sampling "
-                   f"weight of the rare mode does not recover it.",
-              ["mode_alpha", "effective resample", "test F1",
-               "overall recall", f"{rare['rare_mode']} recall"], rows)
-        para(doc,
-            "Because both models consume the same array and one of them "
-            "separates the classes, the information is present and the sequence "
-            "model's failure is an optimisation limit rather than an information "
-            "limit. Resampling the mode does not close the gap, which rules out "
-            "the simplest explanation. Whether the cause is the loss landscape, "
-            "the pooling operator discarding a localised cue, or the binary head "
-            "being dominated by the majority mode is open; probing the trunk for "
-            "linear separability of the rare mode would localise it.")
-    else:
-        para(doc, "[Section 4 pending: run python -m src.ml.rare_mode_sweep]")
-
-    # ── 5. Economics ─────────────────────────────────────────────────────────
-    doc.add_heading("5  Where the Screen Belongs", level=1)
-    if econ:
-        w = econ["weighted"]
-        rows = [
-            ["T0 — six launch parameters, before propagating",
-             pct(w["compute_saved_t0"]), pct(w["false_prune_rate_t0"], 2),
-             pct(w["fail_recall_t0"], 2)],
-            ["T40 — telemetry Transformer at 40%",
-             pct(w["compute_saved_t40"]), pct(w["false_prune_rate_t40"], 2),
-             pct(w["fail_recall_t40"], 2)],
-            ["Cascade — T0 where confident, else T40",
-             pct(w["cascade_saved"]), pct(w["cascade_false_prune"], 2),
-             pct(w["cascade_recall"], 2)],
-        ]
-        table(doc, "Table 4  Screening economics, compute charged in "
-                   "propagation-days across a ~100x per-target cost range. "
-                   "Thresholds fitted on validation and reported on the held-out "
-                   "split.",
-              ["Screen", "Compute saved", "Good missions destroyed",
-               "Failure recall"], rows, bold_rows={0})
-        para(doc,
-            f"Having fixed the sequence model, the honest conclusion is that it "
-            f"should not be used. A six-feature classifier over the injection "
-            f"parameters, evaluated before any propagation happens, saves "
-            f"{pct(w['compute_saved_t0'])} of compute against the telemetry "
-            f"model's {pct(w['compute_saved_t40'])}, at a comparable cost in "
-            f"good missions destroyed. Accuracy is also flat from 10% to 40% "
-            f"observed. The reason is structural: the simulator is "
-            f"deterministic, so the outcome is a fixed function of the injection "
-            f"offsets and the trajectory is their integral. It cannot carry "
-            f"information the parameters do not already have.")
-        para(doc,
-            "We report this because it bounds the practical significance of "
-            "Sections 3 and 4. The methodological findings concern any grouped "
-            "sequence-modelling pipeline; the application that motivated them "
-            "turns out not to need a sequence model. Logistic regression on the "
-            "same six features scores at chance, so the task does require a "
-            "nonlinear learner — just not a temporal one. A sequential screen "
-            "earns its place only where the outcome is not determined at "
-            "injection: mid-flight stochasticity, unmodelled dynamics, sensor "
-            "noise, or campaigns where launch parameters are not recorded.")
-    else:
-        para(doc, "[Table 4 pending: run python -m src.ml.prune_economics]")
-
-    # ── 6. Limitations ───────────────────────────────────────────────────────
-    doc.add_heading("6  Limitations", level=1)
-    bullets(doc, [
-        "Single seed. Every result is one run at seed 42. The split is "
-        "deterministic in (n, seed) so the numbers reproduce exactly, which is "
-        "reproducibility, not stability. No confidence intervals are claimed.",
-        "One domain. The collapse is demonstrated on one corpus. We characterise "
-        "the mechanism in terms of a variance ratio that is not specific to "
-        "astrodynamics, but we have not reproduced it on a second dataset, and "
-        "until we do the predictive rule — collapse when the ratio exceeds some "
-        "threshold — remains a conjecture.",
-        "Synthetic and deterministic. No execution error, unmodelled "
-        "accelerations or sensor noise, and every mission of a target shares a "
-        "time base. That shared time base is what makes per-timestep "
-        "standardisation work at all, and it is a property of the generator "
-        "rather than of real campaigns.",
-        "Seven targets. An eighth (the Moon) was generated and is excluded by "
-        "decision: it is a short Earth-centric transfer sharing neither the cost "
-        "structure of Section 5 nor the dynamical regime.",
-        "No real mission data.",
-    ])
-
-    # ── 7. Related work ──────────────────────────────────────────────────────
-    doc.add_heading("7  Related Work", level=1)
-
-    doc.add_heading("7.1  Feature Scaling and Normalisation Pathologies", level=2)
-    para(doc,
-        "Feature scaling and normalisation layers are foundational to stable deep neural "
-        "network optimization (Ioffe & Szegedy, 2015; Ba et al., 2016; Wu & He, 2018). "
-        "While techniques such as Batch Normalisation and Layer Normalisation mitigate internal "
-        "covariate shift, they presuppose that input feature statistics are stationary or "
-        "homogeneously distributed across batches. In multi-domain and multi-task learning, "
-        "pooling scaling statistics across heterogeneous domains introduces severe scale "
-        "compression (Ulyanov et al., 2016; Salamon & Bello, 2017). When global scale is "
-        "swamped by inter-group variance, intra-group signal variations are compressed below "
-        "the dynamic range of float precision and layer normalization gains. Our study "
-        "formalizes this failure mode as Grouped-Normalisation Collapse, providing a controlled "
-        "decomposition isolating inter-group pooling as the primary driver of representation "
-        "degeneration.")
-
-    doc.add_heading("7.2  Shortcut Learning and Simplicity Bias", level=2)
-    para(doc,
-        "Deep neural networks exhibit a pronounced simplicity bias, frequently exploiting "
-        "spurious low-frequency correlations rather than complex structural signals (Geirhos "
-        "et al., 2020; Shah et al., 2020; Lapuschkin et al., 2019). In grouped datasets with "
-        "heterogeneous scales, cross-group centroid separation presents a dominant, trivial "
-        "shortcut. A model evaluated on aggregate cross-group metrics can report falsely elevated "
-        "validation performance (such as ROC-AUC > 0.95) by ranking group offsets while "
-        "completely failing to discriminate within individual groups. We contribute a concrete "
-        "diagnostic—within-group prediction variance—that explicitly unmasks shortcut "
-        "learning and distinguishes constant-output collapse from standard underfitting.")
-
-    doc.add_heading("7.3  Tabular Benchmarks: Deep Networks vs. Scale-Invariant Trees", level=2)
-    para(doc,
-        "Recent empirical benchmarks on tabular and physical data demonstrate that tree-based "
-        "ensembles, such as XGBoost (Chen & Guestrin, 2016) and LightGBM (Ke et al., 2017), "
-        "consistently outperform or match deep neural architectures (Grinsztajn et al., 2022; "
-        "Shwartz-Ziv & Armon, 2022). Decision trees partition feature space using axis-aligned, "
-        "monotonically scale-invariant splits, making them immune to affine feature transformations "
-        "and scale compression. Crucially, our findings highlight a subtle methodological "
-        "trap: practitioners who use tree baselines to validate preprocessing integrity "
-        "obtain a false certification of pipeline health, as trees achieve perfect separation on "
-        "arrays under preprocessing that renders deep sequence models entirely non-functional.")
-
-    doc.add_heading("7.4  Class Imbalance and Rare-Mode Optimization Limits", level=2)
-    para(doc,
-        "Addressing extreme class imbalance and rare failure modes in deep learning typically "
-        "relies on reweighting, focal loss, or oversampling strategies (Buda et al., 2018; "
-        "Lin et al., 2017; Cui et al., 2019). However, when a rare class constitutes a tiny "
-        "fraction of the dataset, gradient starvation can permanently suppress its gradient "
-        "updates. In Section 4, we demonstrate an empirical optimization limit: mode-balanced "
-        "resampling up to 19.2x fails to recover a rare failure mode in the sequence model, "
-        "despite a tree classifier reaching AUC 1.0000 on the identical window. This establishes "
-        "that the blind spot stems from representation learning dynamics rather than an "
-        "information-theoretic boundary.")
-
-    doc.add_heading("7.5  Surrogate Modelling and Learned Early Termination in Simulation", level=2)
-    para(doc,
-        "Machine learning surrogates and early-exit mechanisms are increasingly deployed to "
-        "accelerate computationally intensive Monte Carlo physical simulations (Baker et al., "
-        "2019; Sun et al., 2021). While telemetry-based sequence models are commonly assumed "
-        "to be necessary for dynamic trajectory screening, our economics evaluation in Section 5 "
-        "demonstrates that for deterministic physical systems, input-space screening ($T_0$) at "
-        "injection dominates telemetry screening ($T_{40}$). We bound the operational utility of "
-        "learned trajectory screening, showing that temporal sequence modeling pays for itself "
-        "only when unmodelled stochastic perturbations or sensor noise disrupt initial-condition "
-        "determinism.")
-
-
-    # ── 8. Conclusion ────────────────────────────────────────────────────────
-    doc.add_heading("8  Conclusion", level=1)
-    para(doc,
-        "Sharing a feature scaler across heterogeneous groups can reduce a deep "
-        "model to a per-group constant while a tree on the identical arrays "
-        "reports the task as solved. The failure is not exotic, the "
-        "preprocessing choice that causes it is routine, and the standard "
-        "defence against it — check a simple baseline — is invariant to it by "
-        "construction. Reporting per-group prediction variance alongside "
-        "aggregate metrics costs nothing and would have caught it immediately.")
-
-    doc.add_heading("Reproduction", level=1)
-    code_block(doc,
-        "export ORBITGUARD_DATA=/path/to/dataset\n"
-        "python -m src.ml.norm_ablation          # Table 1\n"
-        "python -m src.ml.baseline_invariance    # Table 2\n"
-        "python -m src.ml.rare_mode_sweep        # Table 3\n"
-        "python -m src.ml.prune_economics        # Table 4\n"
-        "python docs/paper/build_paper.py        # this document")
+    missing = []
+    for key, n in sorted(cites.items(), key=lambda kv: kv[1]):
+        p = doc.add_paragraph()
+        p.paragraph_format.first_line_indent = Inches(0)
+        p.paragraph_format.left_indent = Inches(0.22)
+        p.paragraph_format.space_after = Pt(2)
+        entry = bib.get(key)
+        if entry is None:
+            missing.append(key)
+            text = f"[{n}] MISSING BIBTEX ENTRY: {key}"
+        else:
+            text = f"[{n}] {format_reference(entry)}"
+        r = p.add_run(text)
+        r.font.size = Pt(8)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     doc.save(out_path)
     print(f"  Saved -> {out_path}")
+    print(f"  {len(cites)} citations, {len(refs)} numbered floats")
+    if missing:
+        print(f"  WARNING: no bib entry for {', '.join(missing)}")
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out", default=str(REPO / "docs/paper/OrbitGuard_paper_draft.docx"))
+    ap.add_argument("--out", default=str(HERE / "OrbitGuard_paper_draft.docx"))
     args = ap.parse_args()
     build(Path(args.out))
     return 0
