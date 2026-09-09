@@ -158,9 +158,10 @@ positive result to report rather than a negative one.
 ## Open decisions for you
 
 - **Affiliation** is a placeholder in `content.py` (`AFFILIATION`).
-- **Authorship** — `rohitmichael-alt` has 15 commits in the repository's history
-  and the earlier dataset generation. The author list in `content.py` currently
-  names both; confirm it before circulating.
+- **Authorship — settled.** Harsha Vardan M Sakamuri, Rohit Michael, and
+  Valarmathi Sudhakar (guide, listed last per convention). `rohitmichael-alt`
+  has 15 commits in the repository's history and did the earlier dataset
+  generation. Set in `AUTHORS` in `content.py`.
 - **Dataset release.** C4 in the proposal offers the corpus as a contribution.
   The mission tables are ~71 GB; a release needs a hosting plan and probably a
   downsampled public subset. The per-planet `.npz` extracts (~70 MB each) are a

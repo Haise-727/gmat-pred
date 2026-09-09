@@ -49,7 +49,9 @@ MULTISEED = REPORTS / "multiseed_paper"
 
 TITLE = ("Scale-Invariant Baselines Can Certify a Broken Deep Model: "
          "Grouped-Normalisation Collapse in Learned Trajectory Screening")
-AUTHORS = ["Harsha Sakamuri", "Rohit Michael"]
+#: Author order: contributors first, supervising guide last, per the usual
+#: convention. AFFILIATION is still a placeholder — set it before circulating.
+AUTHORS = ["Harsha Vardan M Sakamuri", "Rohit Michael", "Valarmathi Sudhakar"]
 AFFILIATION = "OrbitGuard Research Group"
 KEYWORDS = ["feature normalisation", "shortcut learning", "model diagnostics",
             "simulation screening", "trajectory analysis", "negative results"]
