@@ -263,7 +263,10 @@ def document() -> list[tuple[str, object]]:
         "Normalisation is central to training deep networks, and the standard "
         "layers (batch, layer, group and instance normalisation) all address "
         "some version of the problem [@ioffe2015batch, ba2016layer, wu2018group, "
-        "ulyanov2016instance]. They also all assume something about the input "
+        "ulyanov2016instance, huang2023normalization]. That how the inputs are "
+        "scaled decides whether a network trains at all, rather than merely how "
+        "fast, has been known since well before any of those layers existed "
+        "[@sola1997normalization]. They also all assume something about the input "
         "they are handed: that the feature statistics are either stationary, or "
         "at least comparable across whatever the pooling axis is. Fitting one "
         "scaler over several groups whose natural ranges differ by orders of "
@@ -287,13 +290,16 @@ def document() -> list[tuple[str, object]]:
         "while being useless inside every individual group, which is exactly "
         "what we observed. Our contribution here is a diagnostic (the spread of "
         "the predictions within a group) that separates this case from ordinary "
-        "underfitting and needs no labels.")
+        "underfitting and needs no labels. It is also a pipeline-level problem "
+        "rather than a modelling one, of the kind that accumulates in the shared "
+        "preprocessing code that no single model owns [@chaudhary2018hidden].")
 
     add("h2", "Trees as baselines, and the limits of that")
     add("p",
         "Tree ensembles remain strong on tabular and physical data, often "
         "matching or beating deep models [@chen2016xgboost, ke2017lightgbm, "
-        "grinsztajn2022tree, shwartz2022tabular], which is a large part of why "
+        "grinsztajn2022tree, shwartz2022tabular, pasaribu2024xgboost], which is a "
+        "large part of why "
         "they are the default baseline. Their splits are axis-aligned and "
         "threshold-based, so any monotone rescaling of a feature leaves them "
         "unchanged. That invariance is normally a virtue. We point out that it "
@@ -305,7 +311,11 @@ def document() -> list[tuple[str, object]]:
     add("h2", "Rare classes and optimisation limits")
     add("p",
         "The usual answers to extreme class imbalance are reweighting, focal "
-        "loss, or resampling [@buda2018systematic, lin2017focal, cui2019class]. "
+        "loss, or resampling [@buda2018systematic, lin2017focal, cui2019class], "
+        "and the effect of imbalance on what a deep classifier actually learns is "
+        "surveyed at length [@dong2025confidence]. The two model families do not "
+        "respond to it the same way, which is part of why the comparison below is "
+        "worth making at all [@wu2021xgboostnn]. "
         "In [#sec:rare] we report a case where none of that is the issue: "
         "oversampling a rare failure mode by a factor of "
         f"{rare['runs'][-1]['effective_resample_factor']:.1f} moves its recall "
@@ -314,9 +324,11 @@ def document() -> list[tuple[str, object]]:
         "The evidence in the space domain runs the same way. The ESA anomaly "
         "benchmark reports that current sequence models still struggle on rare "
         "but operationally important events in real satellite telemetry "
-        "[@kotowski2024esaadb], and it is worth noting that carefully engineered "
-        "LSTM pipelines do work on this kind of data when the per-channel "
-        "handling is right [@hundman2018detecting]. That contrast is the point: "
+        "[@kotowski2024esaadb], and rare-anomaly detection on satellite telemetry "
+        "is an active enough problem to have its own uncertainty-aware methods "
+        "[@sadr2022montecarlo]. Carefully engineered LSTM pipelines do work on "
+        "this kind of data when the per-channel handling is right "
+        "[@hundman2018detecting]. That contrast is the point: "
         "the difference is in the engineering, not the model class."
         if rare else
         "The usual answers to extreme class imbalance are reweighting, focal "
@@ -330,7 +342,15 @@ def document() -> list[tuple[str, object]]:
         "[@sanchezsanchez2018realtime], predict transfer costs without full "
         "propagation [@li2019deepnetworks, izzo2018mlevo], and learn robust "
         "low-thrust policies that are then certified by Monte Carlo "
-        "[@zavoli2021rl]. Screening specifically, using a learned model to "
+        "[@zavoli2021rl]. Closer to the data this paper uses, learned models "
+        "correct orbit predictions from sparse tracking [@li2020orbit] and stand "
+        "in for Monte Carlo when propagating orbit uncertainty forward "
+        "[@zhou2024neuralorbit], and a substantial line of work applies machine "
+        "learning to spacecraft telemetry for anomaly and fault detection "
+        "[@ibrahim2019telemetry, naik2020automatically], including with the same "
+        "attention-based architecture family used here "
+        "[@jiang2023transformerlstm]. Screening specifically, using a learned "
+        "model to "
         "decide which of a very large number of candidate cases deserve full "
         "analysis, is established in conjunction assessment, both as an ESA "
         "competition on real conjunction data [@uriot2020collision, "
@@ -344,7 +364,8 @@ def document() -> list[tuple[str, object]]:
         "work reduces the cost of each propagation rather than deciding which "
         "propagations to start [@massari2017nonlinear, jia2022datadriven]. "
         "Surrogate and early-exit methods for expensive simulation are the "
-        "general form of the idea [@baker2019accelerating, sun2021early].")
+        "general form of the idea [@baker2019accelerating, sun2021early, "
+        "yin2022surrogate].")
 
     # ── III. Setup ───────────────────────────────────────────────────────────
     add("h1", "Setup")
