@@ -53,6 +53,7 @@ TITLE = ("Scale-Invariant Baselines Can Certify a Broken Deep Model: "
 #: convention. AFFILIATION is still a placeholder — set it before circulating.
 AUTHORS = ["Harsha Vardan M Sakamuri", "Rohit Michael", "Valarmathi Sudhakar"]
 AFFILIATION = "OrbitGuard Research Group"
+REPO_URL = "https://github.com/EroKami-727/gmat-pred"
 KEYWORDS = ["feature normalisation", "shortcut learning", "model diagnostics",
             "simulation screening", "trajectory analysis", "negative results"]
 
@@ -978,7 +979,36 @@ def document() -> list[tuple[str, object]]:
         "within a group alongside aggregate metrics would have caught ours "
         "immediately.")
 
-    add("h1", "Reproduction")
+    add("h1", "Code and Data Availability")
+    add("p",
+        f"Everything in this paper — the experiment scripts, the JSON artifacts "
+        f"every number is read from, the figure code, and the source of this "
+        f"document — is at {REPO_URL}. A short map of where things are:")
+    add("bullets", [
+        "src/ml/ — the experiments. norm_ablation.py produces Table I, "
+        "baseline_invariance.py Table II, rare_mode_sweep.py Table IV, "
+        "prune_economics.py Table V. splits.py is the single definition of the "
+        "train/validation/test partition that all of them share.",
+        "src/ml/model.py — the Transformer, and planet_config.py the target "
+        "list, cadences and the recorded reason the Moon is excluded.",
+        "reports/ — the measured artifacts. Every table and figure here is read "
+        "from one of these JSON files; multiseed_paper/ holds the per-seed runs "
+        "behind Table III.",
+        "docs/paper/ — this document. content.py holds the prose and builds the "
+        "tables from the artifacts; figures.py draws every figure from the same "
+        "artifacts; render_latex.py and build_paper.py render the LaTeX and Word "
+        "versions. No number in the paper is typed in by hand.",
+        "docs/RESEARCH_LEDGER.md — the full decision history, including two "
+        "analyses that were invalidated by a positional join and the corrections "
+        "that replaced them. docs/LIMITATIONS.md states what the results do not "
+        "support.",
+    ])
+    add("p",
+        "The per-target .npz extracts the experiments read (roughly 70 MB each) "
+        "are derived from a 71 GB mission table that is too large to host in the "
+        "repository. The scripts below regenerate the artifacts from those "
+        "extracts; ORBITGUARD_DATA points at the full table for the economics "
+        "analysis, which is the only experiment that needs it.")
     add("code",
         "export ORBITGUARD_DATA=/path/to/dataset\n"
         "\n"
