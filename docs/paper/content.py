@@ -53,7 +53,7 @@ TITLE = ("Scale-Invariant Baselines Can Certify a Broken Deep Model: "
 #: convention. AFFILIATION is still a placeholder — set it before circulating.
 AUTHORS = ["Harsha Vardan M Sakamuri", "Rohit Michael", "Valarmathi Sudhakar"]
 AFFILIATION = "OrbitGuard Research Group"
-REPO_URL = "https://github.com/EroKami-727/gmat-pred"
+REPO_URL = "https://github.com/Haise-727/gmat-pred"
 KEYWORDS = ["feature normalisation", "shortcut learning", "model diagnostics",
             "simulation screening", "trajectory analysis", "negative results"]
 
