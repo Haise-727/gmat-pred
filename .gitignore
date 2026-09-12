@@ -102,3 +102,18 @@ docs/paper/*.toc
 docs/paper/*.synctex.gz
 docs/paper/*.fls
 docs/paper/*.fdb_latexmk
+
+# ── The manuscript ──────────────────────────────────────────────────────────
+# Deliberately NOT in version control. The paper is unpublished, and a
+# manuscript sitting in a public repository can count as a preprint under some
+# venues' prior-publication rules. The folder stays on disk at docs/paper/;
+# back it up somewhere other than GitHub.
+#
+# What stays tracked is what the paper's availability section actually points
+# at: the experiments in src/ml/, the reports/ artifacts every number is read
+# from, and the decision history in docs/.
+#
+# Commits before 2026-09-12 still contain the manuscript and some are already
+# pushed. Removing it from history needs a rewrite and a force-push, which is
+# the repo owner's call, not something a .gitignore can do.
+docs/paper/
