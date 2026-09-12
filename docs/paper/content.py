@@ -177,7 +177,7 @@ def document() -> list[tuple[str, object]]:
            )(traces.get(f"{worst.get('planet')}__grouped__p_fail")
              if traces else None)
         + f"A "
-        f"gradient-boosted tree fitted to the very same arrays does not notice: "
+        f"gradient-boosted tree fitted to the very same arrays does not notice. "
         f"its AUC moves by at most {f4(tree_spread)} across all three "
         f"normalisation settings, and it reports the task as almost perfectly "
         f"separable while the network cannot separate it at all. So the usual "
@@ -198,7 +198,7 @@ def document() -> list[tuple[str, object]]:
         # whenever one of them has not been swept.
         + (f" Across {n_seeds} seeds the compression is identical and the "
            f"collapse recurs on {n_collapse_seeds} of them, so it is a property "
-           f"of the preprocessing rather than of one unlucky initialisation."
+           f"of the preprocessing and not of one unlucky initialisation."
            if ms_norm else ""))
 
     add("keywords", KEYWORDS)
@@ -245,7 +245,7 @@ def document() -> list[tuple[str, object]]:
         "groups, and shows only the second is fatal. Second, a demonstration "
         "that a scale-invariant baseline actively signs off on the broken "
         "configuration, together with a cheap diagnostic that does catch it. "
-        "Third, a second failure of the same model: it cannot reach a rare "
+        "Third, a second failure of the same model. It cannot reach a rare "
         "class that is recoverable from its own input, which we measure rather "
         "than assume. We also report, because it bounds how much the first two "
         "matter in practice, that the application which motivated all of this "
@@ -276,7 +276,7 @@ def document() -> list[tuple[str, object]]:
         "[@salamon2017deep]. What we add is a controlled decomposition showing "
         "that pooling across groups, not pooling in general, is what does the "
         "damage, plus the observation that the resulting model is a constant "
-        "rather than merely a weak one.")
+        "and not merely a weak one.")
 
     add("h2", "Shortcut learning and misleading aggregate metrics")
     add("p",
@@ -291,7 +291,7 @@ def document() -> list[tuple[str, object]]:
         "what we observed. Our contribution here is a diagnostic (the spread of "
         "the predictions within a group) that separates this case from ordinary "
         "underfitting and needs no labels. It is also a pipeline-level problem "
-        "rather than a modelling one, of the kind that accumulates in the shared "
+        "and not a modelling one, of the kind that accumulates in the shared "
         "preprocessing code that no single model owns [@chaudhary2018hidden].")
 
     add("h2", "Trees as baselines, and the limits of that")
@@ -390,7 +390,7 @@ def document() -> list[tuple[str, object]]:
         "features are recorded per step, including synodic-frame position, "
         "specific orbital energy, flight-path angle, normalised target distance "
         "and eccentricity. An eighth target was generated (the Moon) and is "
-        "deliberately excluded from the study: it is a six-day Earth-centric "
+        "deliberately excluded from the study. It is a six-day Earth-centric "
         "transfer sampled at 60 s, and shares neither the cost structure of "
         "[#sec:econ] nor the dynamical regime of a heliocentric transfer.")
     add("p",
@@ -409,10 +409,10 @@ def document() -> list[tuple[str, object]]:
         "attention heads, 4 layers and CLS-token pooling, carrying two heads on "
         "a shared trunk: one for the mission outcome and one for the failure "
         "mode. It is trained on random-length prefixes, so its predictions are "
-        "in-distribution at any point in the stream rather than only at the 40% "
+        "in-distribution at any point in the stream, not only at the 40% "
         "mark. The baseline is XGBoost with 300 trees at depth 5, fitted to the "
         "same normalised prefix, flattened. Throughout this paper, 'the same "
-        "input' means literally the same array: the baseline consumes the view "
+        "input' means literally the same array, so the baseline consumes the view "
         "the network is given, not a re-derived feature set. That detail carries "
         "most of the argument, so we are strict about it.")
 
@@ -454,7 +454,7 @@ def document() -> list[tuple[str, object]]:
         "targets occupy ranges that differ by orders of magnitude. A scaler "
         "fitted over a pooled set therefore takes its scale from the largest "
         "source of variation in the pool. What the screen actually has to "
-        "discriminate is neither of those things: it is the spread between "
+        "discriminate is neither of those things. It is the spread between "
         "missions at a given point in the flight, which is small by comparison. "
         "Pooling divides that spread by a denominator chosen for something else, "
         "squashing the useful signal toward zero while leaving the "
@@ -499,7 +499,7 @@ def document() -> list[tuple[str, object]]:
         add("p",
             f"The decomposition is the first result. Pooling across timesteps "
             f"within a single target squashes the signal by one to two orders of "
-            f"magnitude, and yet the network keeps working: it survives on all "
+            f"magnitude, and yet the network keeps working. It survives on all "
             f"{len(paired)} targets, losing at most a few thousandths of AUC. "
             f"Pooling across a group is a different animal. On {wname} it is "
             f"catastrophic — held-out output standard deviation "
@@ -521,7 +521,7 @@ def document() -> list[tuple[str, object]]:
         add("p",
             "[#fig:collapse] is the reason we use the word 'collapse' rather "
             "than "
-            "'underfitting'. A low AUC on its own is ambiguous: it is what you "
+            "'underfitting'. A low AUC on its own is ambiguous, being what you "
             "would see from a model that has learned something weak or wrong. A "
             "held-out prediction distribution three ten-thousandths wide is not "
             "ambiguous. The network has stopped being a function of its input.")
@@ -530,7 +530,7 @@ def document() -> list[tuple[str, object]]:
             merc = next((p for p in paired if p["planet"] == "mercury"), None)
             add("p",
                 f"The second result is that the collapse is selective, and we "
-                f"report this rather than only the case that breaks. On the "
+                f"report it alongside the case that breaks. On the "
                 f"other {len(survivors)} targets the same manipulation costs "
                 f"between {f4(surv_losses[0])} and {f4(surv_losses[-1])} AUC and "
                 f"leaves the output varying normally. Severity does not follow "
@@ -632,7 +632,7 @@ def document() -> list[tuple[str, object]]:
         "still vary.",
         "Tree against network under identical preprocessing. A large gap in the "
         "tree's favour, with both fed the same array, says the network cannot "
-        "exploit information that is present, rather than that the information "
+        "exploit information that is present, and not that the information "
         "is absent.",
     ])
     add("p",
@@ -727,7 +727,7 @@ def document() -> list[tuple[str, object]]:
             f"against the {worst['signal_compression_grouped']:.0f}x compression "
             f"itself, because it is a property of the preprocessing and the "
             f"data, not of the optimiser. The healthy "
-            f"condition is stable too: per-timestep AUC moves by at most "
+            f"condition is stable too. Per-timestep AUC moves by at most "
             f"{max(ts_sds):.4f} between seeds. "
             + (f"{join(never)} never collapse under any seed. "
                if never else ""))
@@ -755,7 +755,7 @@ def document() -> list[tuple[str, object]]:
             f"{min(w_auc):.4f} to {max(w_auc):.4f}, a range that overlaps what "
             f"a merely-degraded target scores. Mercury sits inside it on every "
             f"seed while discriminating normally. AUC therefore cannot tell the "
-            f"two states apart. Prediction spread can: the collapsed runs and "
+            f"two states apart. Prediction spread can. The collapsed runs and "
             f"every healthy run are separated by orders of magnitude with "
             f"nothing in between. If you are going to watch one number for this "
             f"failure, watch that one.")
@@ -777,7 +777,7 @@ def document() -> list[tuple[str, object]]:
                 f"{f4(min(all_auc))} to {f4(max(all_auc))}, and within any one "
                 f"seed and target it moves by at most {f4(worst_spread)} between "
                 f"settings. There is no seed on which the baseline notices. That "
-                f"matters more than the collapse count: the collapse is one "
+                f"matters more than the collapse count, because the collapse is one "
                 f"target's misfortune, but a check that cannot fail is a "
                 f"property of the check.")
 
@@ -828,7 +828,7 @@ def document() -> list[tuple[str, object]]:
             "narrow it down, and that is the next experiment rather than a "
             "result we have.")
         add("p",
-            "Two denominators are worth stating, because this number is easy to "
+            "Two denominators need stating, because this number is easy to "
             "quote misleadingly. Relative to the majority failure mode the rare "
             "mode is oversampled by roughly 45x at the strongest setting. "
             f"Relative to uniform sampling over the training set, which is what "
@@ -965,7 +965,7 @@ def document() -> list[tuple[str, object]]:
         "mechanism in terms of a variance ratio that is not specific to "
         "astrodynamics, but we have not reproduced it on a second dataset, and "
         "until we do, any predictive threshold on that ratio is a conjecture "
-        "rather than a finding.",
+        "and not a finding.",
         "Four targets in the ablation. The collapse is observed on one target "
         "out of four. The baseline-blindness result, which is the "
         "methodological half, holds on all four.",
@@ -973,7 +973,7 @@ def document() -> list[tuple[str, object]]:
         "accelerations, no sensor noise, and every mission of a target shares a "
         "time base. That shared time base is what makes per-timestep "
         "standardisation work at all, and it is a property of the generator "
-        "rather than of real campaigns.",
+        "and not of real campaigns.",
         "No real mission data. This is the largest external-validity gap. "
         "Public benchmarks of real satellite telemetry now exist "
         "[@kotowski2024esaadb, hundman2018detecting] and are the obvious next "
@@ -1015,10 +1015,10 @@ def document() -> list[tuple[str, object]]:
         "reports/ holds the measured artifacts. Every table and figure here is read "
         "from one of these JSON files; multiseed_paper/ holds the per-seed runs "
         "behind Table III.",
-        "docs/paper/ builds this document. content.py holds the prose and makes the "
-        "tables from the artifacts; figures.py draws every figure from the same "
-        "artifacts; render_latex.py and build_paper.py render the LaTeX and Word "
-        "versions. No number in the paper is typed in by hand.",
+        "The manuscript itself is generated from those artifacts rather than "
+        "written against them: the tables and figures here are produced by "
+        "script from the JSON above, so no number in this paper is typed in by "
+        "hand. That build tooling is available from the authors on request.",
         "docs/RESEARCH_LEDGER.md is the full decision history, including two "
         "analyses that were invalidated by a positional join and the corrections "
         "that replaced them. docs/LIMITATIONS.md states what the results do not "
