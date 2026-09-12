@@ -12,7 +12,7 @@ Consolidates every artifact produced during the local 80K-mission
 reproduction pass. All numbers below are from this machine's independently
 generated dataset (`/media/Data/Coding/gmat-pred/data/merged_all_v2/`),
 not copied from the teammate's prior run — see `docs/RESEARCH_LEDGER.md`
-for the full narrative and `docs/AI_CONTEXT.md` for pipeline details.
+for the full narrative and `docs/PIPELINE_CONTEXT.md` for pipeline details.
 
 ## 1. Dataset
 

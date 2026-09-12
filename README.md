@@ -494,5 +494,5 @@ python3 -m src.ml.error_analysis \
 - [`docs/RESEARCH_LEDGER.md`](docs/RESEARCH_LEDGER.md) — full history of decisions and verified numbers
 - [`docs/NUMBA_JIT_PROPAGATOR.md`](docs/NUMBA_JIT_PROPAGATOR.md) — JIT implementation and validation
 - [`docs/ERROR_ANALYSIS.md`](docs/ERROR_ANALYSIS.md) — feature-shift tables for weak held-out targets
-- [`docs/AI_CONTEXT.md`](docs/AI_CONTEXT.md) — full technical context for AI assistants
+- [`docs/PIPELINE_CONTEXT.md`](docs/PIPELINE_CONTEXT.md) — end-to-end technical orientation: generator, feature pipeline, cadences
 - [`src/ml/README_EXPERIMENTS.md`](src/ml/README_EXPERIMENTS.md) — usage docs for all experiment scripts

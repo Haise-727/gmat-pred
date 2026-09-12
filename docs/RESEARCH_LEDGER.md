@@ -272,7 +272,7 @@ Hohmann transfer parameters for each planet. The success criterion is
 - Pushed branch includes calibrated generation, targeting, adaptive propagation,
   training/model fixes, and baseline split/cadence fixes.
 - Latest local audit additions are not pushed yet:
-  - `docs/AI_CONTEXT.md`
+  - `docs/PIPELINE_CONTEXT.md`
   - `docs/PAPER_VALIDITY_AUDIT.md`
   - `docs/RESEARCH_LEDGER.md`
   - `src/ml/baselines.py`

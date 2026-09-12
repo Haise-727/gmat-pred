@@ -1,4 +1,4 @@
-# OrbitGuard — AI Context
+# OrbitGuard — Pipeline Context
 
 > **SUPERSEDED — generation G2 (2026-06-21 to 06-23).**
 > Describes the local 80K reproduction and the multi-planet Transformer

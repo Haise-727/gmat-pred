@@ -25,6 +25,8 @@ gmat_scripts/output/
 
 # Logs
 *.log
+logs/
+.runlogs/
 
 # Tool caches written into the repo root at runtime
 .matplotlib/
@@ -113,7 +115,11 @@ docs/paper/*.fdb_latexmk
 # at: the experiments in src/ml/, the reports/ artifacts every number is read
 # from, and the decision history in docs/.
 #
-# Commits before 2026-09-12 still contain the manuscript and some are already
-# pushed. Removing it from history needs a rewrite and a force-push, which is
-# the repo owner's call, not something a .gitignore can do.
-docs/paper/
+# The finished PDF is the one exception: it is the deliverable, and a reader
+# who finds this repository from the paper should be able to find the paper
+# from the repository. The build system, the .docx, the LaTeX source and the
+# working notes stay out.
+docs/paper/*
+!docs/paper/manuscript/
+docs/paper/manuscript/*
+!docs/paper/manuscript/OrbitGuard_paper.pdf

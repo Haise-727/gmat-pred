@@ -37,7 +37,7 @@ experiment and the per-target error analysis.
 - [`PAPER_READY_SUMMARY.md`](PAPER_READY_SUMMARY.md)
 - [`STATISTICAL_AUDIT_SUMMARY_LOCAL.md`](STATISTICAL_AUDIT_SUMMARY_LOCAL.md)
 - [`ERROR_ANALYSIS.md`](ERROR_ANALYSIS.md)
-- [`AI_CONTEXT.md`](AI_CONTEXT.md)
+- [`PIPELINE_CONTEXT.md`](PIPELINE_CONTEXT.md)
 
 ### G3 — Per-planet dual-head models, tree assist, T0/T40 economics
 **2026-08-02 → current. This is what the paper describes.**
