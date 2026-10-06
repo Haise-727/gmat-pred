@@ -1,6 +1,7 @@
-# EAAI LaTeX conversion of Gmat_Pred_Research.docx
+# EAAI LaTeX version of the paper
 
-Source of truth: `_source_extract/Gmat_Pred_Research.docx` (copy of the original Word file).
+Source of truth for the text: `OrbitGuard_paper.docx` at the repository root.
+The LaTeX files carry the same text.
 
 ## Compile
 
@@ -23,17 +24,23 @@ Output: `manuscript.pdf`
 
 ## Submission files (keep in one folder)
 
-Elsevier Editorial Manager cannot use subfolders. For **double-anonymized review** upload:
+Elsevier Editorial Manager cannot use subfolders. For double anonymised review
+upload:
 
 - `title_page.tex` and `title_page.pdf`
 - `manuscript_anonymous.tex` and `manuscript_anonymous.pdf`
+- `highlights.docx`, as a separate file
 - `references.bib`
 - `elsarticle-harv.bst`
 - `elsarticle.cls` (if the journal system does not already provide it)
-- `fig1.png` ... `fig7.png`
+- `fig1.png` to `fig7.png`
 
-`manuscript.tex` / `manuscript.pdf` is the complete identifying version for you, not the review file.
+`manuscript.tex` and `manuscript.pdf` are the full version with author names.
+They are for the authors, not the review file.
 
-## Author input still required
+## What is still open
 
-See `CONTENT_PRESERVATION_REPORT.md`. Highlights, graphical abstract, affiliations, corresponding-author email, competing-interest, CRediT, and funding were not in the Word file and were not invented.
+See `CONTENT_PRESERVATION_REPORT.md`. In short: the graphical abstract is
+optional and has not been made, the competing interest, CRediT and funding
+statements need the authors' confirmation, and the standard deviation used in
+Table III is waiting on a decision.

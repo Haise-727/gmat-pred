@@ -1,0 +1,15 @@
+% Highlights for the journal submission.
+% Each bullet is at most 85 characters including spaces. EAAI wants them as a
+% separate editable file with "highlights" in its name: upload highlights.docx.
+%
+% Where each claim can be checked in reports/:
+%   1  normalisation_ablation.json and multiseed_paper/ (Venus collapses on 4 of 5 seeds)
+%   2  baseline_invariance.json and multiseed_paper/ (60 trees, AUC 0.9989 to 1.0000)
+%   3  the same files (collapsed runs 4.8e-05 or less, every other run 3.6e-02 or more)
+%   4  prune_economics.json (64.5% against 38.3%, higher on all seven targets, one seed)
+\begin{highlights}
+\item Pooling one scaler across groups can collapse a Transformer to a constant output
+\item A boosted tree on the same input scores near perfect, so it misses the fault
+\item The spread of predictions within a group is a cheap check that catches it
+\item On our data, a six feature launch screen saves more compute than a telemetry model
+\end{highlights}

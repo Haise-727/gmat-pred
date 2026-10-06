@@ -26,22 +26,9 @@
 A single feature scaler is often used among a set of data. We show that it can quietly harm a sequence model without warning the practitioner about any problems, even when they apply all the checks they should. A Transformer trained with a scaler averaged over a target group ceases to react to the input on Venus (3.11e-05 prediction standard deviation on unseen missions, 0.6037 validation area under the ROC curve (AUC)). Let's train a gradient boosted tree on the same arrays and nothing is amiss. Its AUC varies by at most 0.0002 across all three normalisation settings, and it finds the task almost perfectly separable while the network cannot separate it at all. Trees here are not affected by the thing that is destroying the network. Severe, but not everywhere - 1 of 4 targets collapses; the remaining ones lose between 0.0003 and 0.0925 AUC while they keep working. The compression is the same across the 5 seeds, and the collapse occurs on 4 of them, it is not due to one unlucky initialisation but is inherent in the preprocessing itself. Our AI contribution is a controlled test of when pooled normalisation breaks a sequence model (survivable across timesteps, not across groups), a check on prediction spread that catches it, and a second failure where the model cannot find a rare class that a tree finds in the same input. The engineering application is screening simulated spacecraft trajectories to save compute.
 \end{abstract}
 
-%% Graphical abstract: AUTHOR INPUT REQUIRED.
-%% The original Word document does not contain a graphical abstract.
-%% EAAI encourages a graphical abstract at submission (531 x 1328 pixels).
-%% Do not uncomment until the author supplies a file.
-% \begin{graphicalabstract}
-% \includegraphics{graphical_abstract}
-% \end{graphicalabstract}
-
-%% Highlights: AUTHOR INPUT REQUIRED.
-%% The original Word document does not contain highlights.
-%% EAAI encourages 3 to 5 bullet points, each a maximum of 85 characters including spaces.
-% \begin{highlights}
-% \item [AUTHOR INPUT REQUIRED]
-% \item [AUTHOR INPUT REQUIRED]
-% \item [AUTHOR INPUT REQUIRED]
-% \end{highlights}
+%% Graphical abstract: optional, not supplied. If one is made, upload it as a
+%% separate file (531 x 1328 pixels, height by width, or proportionally more).
+%% Highlights: submitted as the separate file highlights.docx, as the journal asks.
 
 \begin{keyword}
 feature normalisation \sep shortcut learning \sep model diagnostics \sep simulation screening \sep trajectory analysis \sep negative results
