@@ -29,7 +29,7 @@ column.
 | References | 42 BibTeX entries, every one cited |
 | Declaration | The journal's generative AI declaration, above the references |
 | Highlights | 4, in `highlights.docx` and `highlights.tex` |
-| Graphical abstract | Optional. Not made |
+| Graphical abstract | `graphical_abstract.tiff`, drawn by `graphical_abstract.py` from `reports/`. Optional for EAAI |
 
 ---
 
@@ -75,7 +75,6 @@ These change what the paper says. Each one was checked against the files in
 
 ## Still open
 
-- **Graphical abstract.** Optional. EAAI encourages one but does not require it.
 - **Keywords.** EAAI prefers single word keywords. The original six were kept.
 - **Table III spread.** It uses the population standard deviation over 5 seeds. The usual choice for a sample is divide by n minus 1, which gives larger values for three cells: Venus grouped 0.1710 (now 0.1530), Mars grouped 0.0104 (now 0.0093), Mercury grouped 0.0040 (now 0.0036). Decision pending.
 - **Inspec codes and ORCIDs.** None supplied.
