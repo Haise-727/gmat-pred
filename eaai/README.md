@@ -33,7 +33,7 @@ upload:
 - `references.bib`
 - `elsarticle-harv.bst`
 - `elsarticle.cls` (if the journal system does not already provide it)
-- `fig1.png` to `fig7.png`
+- `fig1.png` to `fig6.png`. `fig6.png` and the numbers in Tables 4 and 5 come from `new_results.py`.
 - `graphical_abstract.tiff` (also `.png` and `.pdf`), upload as the graphical
   abstract. `graphical_abstract.py` redraws it from `reports/`; every number in
   it is read from the experiment files. It is 2656 x 1062 pixels.

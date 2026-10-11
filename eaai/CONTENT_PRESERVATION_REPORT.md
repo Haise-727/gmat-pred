@@ -21,14 +21,14 @@ column.
 | Title | Same as the Word file |
 | Authors | Three. The third author is Valarmathi P., the corresponding author |
 | Affiliation and email | Filled in: SCOPE, Vellore Institute of Technology, Chennai. Email `valarmathi.sudhakar@vit.ac.in` |
-| Abstract | 242 words (the limit is about 250). AUC and standard deviation are defined, and the AI contribution and the engineering application are stated |
+| Abstract | 252 words (the journal says about 250). AUC and standard deviation are defined, and the AI contribution and the engineering application are stated |
 | Keywords | The original six, unchanged |
-| Sections | 1 to 10, same titles as the Word file |
-| Tables | 5. Every cell matches the files in `reports/`. In Table III the spread is the population standard deviation over the 5 seeds (divide by n) |
-| Figures | 7 PNG files with the original captions |
-| References | 42 BibTeX entries, every one cited |
+| Sections | 1 to 11. Sections 6 and 7 are new (see the changes below). The rest keep the Word file's titles |
+| Tables | 6. Every cell matches the files in `reports/`. In Table III the spread is the population standard deviation over the 5 seeds (divide by n) |
+| Figures | 6 PNG files. Figures 1 to 5 have the original captions. Figure 6 is new |
+| References | 40 BibTeX entries, every one cited |
 | Declaration | The journal's generative AI declaration, above the references |
-| Highlights | 4, in `highlights.docx` and `highlights.tex` |
+| Highlights | 5, in `highlights.docx` and `highlights.tex` |
 | Graphical abstract | `graphical_abstract.tiff`, drawn by `graphical_abstract.py` from `reports/`. Optional for EAAI |
 
 ---
@@ -46,7 +46,7 @@ These change layout only, not wording.
 7. **Table I.** A group row (`per-timestep`, `global`, `grouped`) was added above the three repeated blocks of `sig`, `AUC` and `std`, so they stay readable. The cells are unchanged.
 8. **Limitations.** The five bullets are a `\begin{itemize}` list.
 9. **Code listing.** The shell commands are in `verbatim`, in a smaller font so long lines fit.
-10. **Figure files.** The seven images were taken from the Word file and named `fig1.png` to `fig7.png` in document order.
+10. **Figure files.** The images were taken from the Word file and named `fig1.png` to `fig5.png` in document order. `fig6.png` is new and is drawn by `new_results.py`.
 11. **Escapes.** `_` and `%` are escaped, `>` in "AUC of >0.95" is in math mode, and accented author names use LaTeX accents.
 
 ---
@@ -70,13 +70,22 @@ These change what the paper says. Each one was checked against the files in
 | 10 | Abstract | AUC and standard deviation defined at first use. A sentence stating the AI contribution and the engineering application was added. Four passages were cut or merged. 271 words became 242 | The journal asks for these, and for about 250 words |
 | 11 | Before the references | The journal's generative AI declaration was added | Required by Elsevier |
 | 12 | Authors | The third author is now Valarmathi P. | Author's request |
+| 13 | Introduction | Added a short paragraph saying the contribution is how the failure hides and a check that finds it, not the fix. The three contributions now end with the second dataset. "Two failures and one bad result" became one failure | Reviewer comments from the mentor. The second failure was removed (see 15) |
+| 14 | Related Work | Added ST-Norm and Deep Adaptive Input Normalization, and a sentence on how our question differs. The paragraph on class imbalance was removed, with six references (Buda, Lin, Cui, Dong, Sadr, Wu 2021) | Those references only supported the removed section |
+| 15 | Old Section 6 | The rare failure mode section (with its table and figure) was removed | The mechanism is not settled, and the mentor asked for it to go |
+| 16 | New Section 6 | The spread score S, the reference version D, the 60 runs in four states, the threshold chosen on validation and tested on test, a table and Figure 6 | Reviewer comments from the mentor. Numbers come from `reports/diagnostic_eval.json` |
+| 17 | New Section 7 | NASA C-MAPSS turbofan data as a second dataset, with a table. Pooling shrinks the signal about nine times and the model keeps working | Reviewer comments from the mentor. Numbers come from `reports/second_dataset.json` |
+| 18 | Section 8 | The two paragraphs on scope and on selection biases, and the economics figure, were removed. The table stays | Asked to reduce it |
+| 19 | Limitations | Rewritten as six shorter bullets that match the new sections | Follows from 15 to 17 |
+| 20 | Abstract, Conclusion | The abstract no longer mentions the second failure and now mentions the threshold and the turbofan data. One sentence was added to the Conclusion | Follows from 15 to 17 |
+| 21 | Word file | The seven figures were missing from the earlier root copy of the Word file (the images were in the file but the pages did not point to them). They were put back, and the figures were renumbered to match | A fault in the earlier copy, found while updating it |
 
 ---
 
 ## Still open
 
 - **Keywords.** EAAI prefers single word keywords. The original six were kept.
-- **Table III spread.** It uses the population standard deviation over 5 seeds. The usual choice for a sample is divide by n minus 1, which gives larger values for three cells: Venus grouped 0.1710 (now 0.1530), Mars grouped 0.0104 (now 0.0093), Mercury grouped 0.0040 (now 0.0036). Decision pending.
+- **Table III spread.** It uses the population standard deviation over 5 seeds (divide by n). The authors decided to keep it.
 - **Inspec codes and ORCIDs.** None supplied.
 - **Statements written during the conversion.** The competing interest, CRediT roles and funding statements were not in the Word file. They need to be confirmed by the authors before submission.
 - **BibTeX warnings.** Nine entries have no page numbers because none were given. None were invented.
@@ -94,9 +103,9 @@ These change what the paper says. Each one was checked against the files in
 
 ## How the final text was checked
 
-- 29 measured claims in the paper were compared with `reports/`, and all match.
+- 29 measured claims in the paper were compared with `reports/`, and all match. The numbers in Sections 6 and 7 were compared with `reports/diagnostic_eval.json` and `reports/second_dataset.json` after the text was written.
 - Every table cell was compared with `reports/`, and all match.
-- All 42 references are cited, and every DOI was resolved and its title compared with the entry.
+- All 40 references are cited, and every DOI was resolved and its title compared with the entry.
 - The compiled PDFs have no unresolved references, and the anonymous PDF contains no author names.
 
 ---
@@ -116,4 +125,4 @@ pdflatex manuscript.tex
 pdflatex manuscript.tex
 ```
 
-Main files: `manuscript.tex`, `references.bib`, `elsarticle-harv.bst`, `fig1.png` to `fig7.png`.
+Main files: `manuscript.tex`, `references.bib`, `elsarticle-harv.bst`, `fig1.png` to `fig6.png`.
