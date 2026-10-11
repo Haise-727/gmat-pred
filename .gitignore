@@ -67,6 +67,7 @@ models/**/*.pkl
 # state and must not be mistaken for the per-planet production models.
 models/_norm_ablation/
 models/_rare_mode_sweep/
+models/_diag_runs/
 
 # Generated reports.
 #
@@ -86,6 +87,11 @@ reports/**
 # lets someone redraw that figure without first re-training the ablation, whose
 # checkpoints are (correctly) ignored above.
 !reports/prediction_traces.npz
+
+# Same reason for the spread diagnostic: diagnostic_runs.npz holds the validation
+# and test P(fail) of all 60 runs (0.5 MB), so the check can be re-scored without
+# training anything.
+!reports/diagnostic_runs.npz
 
 # Parquet split temps
 data/_*_split.parquet
