@@ -20,7 +20,7 @@
 
 \begin{frontmatter}
 
-\title{Scale-Invariant Baselines Can Certify a Broken Deep Model: Grouped-Normalisation Collapse in Learned Trajectory Screening}
+\title{A Scale-Invariant Baseline Can Miss a Broken Deep Model: Grouped-Normalisation Collapse in Learned Trajectory Screening}
 
 \author[inst1]{Harsha Vardan M Sakamuri}
 \author[inst1]{Rohit Michael Raj}
@@ -35,7 +35,7 @@
             country={India}}
 
 \begin{abstract}
-A single feature scaler is often used among a set of data. We show that it can quietly harm a sequence model without warning the practitioner about any problems, even when they apply all the checks they should. A Transformer trained with a scaler averaged over a target group ceases to react to the input on Venus (3.11e-05 prediction standard deviation on unseen missions, 0.6037 validation area under the ROC curve (AUC)). Let's train a gradient boosted tree on the same arrays and nothing is amiss. Its AUC varies by at most 0.0002 across all three normalisation settings, and it finds the task almost perfectly separable while the network cannot separate it at all. Trees here are not affected by the thing that is destroying the network. Severe, but not everywhere - 1 of 4 targets collapses; the remaining ones lose between 0.0003 and 0.0925 AUC while they keep working. The compression is the same across the 5 seeds, and the collapse occurs on 4 of them, it is not due to one unlucky initialisation but is inherent in the preprocessing itself. Our AI contribution is a controlled test of when pooled normalisation breaks a sequence model (survivable across timesteps, not across groups), a check on prediction spread that catches it, and a second failure where the model cannot find a rare class that a tree finds in the same input. The engineering application is screening simulated spacecraft trajectories to save compute.
+A single feature scaler is often used among a set of data. We show that it can quietly harm a sequence model while two otherwise sensible checks---a mixed-group validation score and the particular scale-invariant XGBoost baseline tested here---remain healthy. A Transformer trained with a scaler averaged over a target group ceases to react to the input on Venus (3.11e-05 prediction standard deviation on unseen missions, 0.6037 validation area under the ROC curve (AUC)). The same transformed arrays remain almost perfectly separable by XGBoost, whose AUC varies by at most 0.0002 across the three normalisation settings. This is a narrow invariance result, not a claim that tree models generally cannot diagnose preprocessing errors. The failure is selective: 1 of 4 targets collapses; the remaining targets lose between 0.0003 and 0.0925 AUC while continuing to discriminate. Across five seeds the same preprocessing produces collapse on 4 runs, so five seeds do not establish universal reliability. Our AI contribution is a controlled test of when pooled normalisation breaks this sequence model, a label-free prediction-spread statistic that exposes the observed failure, and a second failure where the model misses a rare class that a tree finds in the same input. The engineering application is screening simulated spacecraft trajectories to save compute; operational integration is proposed, not flight-demonstrated.
 \end{abstract}
 
 %% Graphical abstract: optional, not supplied. If one is made, upload it as a
@@ -55,7 +55,7 @@ In Monte Carlo trajectory campaigns, the majority of the compute is used on runs
 
 This paper will deal with the first failure. Grouped data was used for training the model and a single feature scaler was fitted for the entire group. It ended up emitting a single constant per group. It's not the surprising part that it happened. What's most interesting is the length of time it took to be noticed. With a mixed validation set it looked fine, since a model can score well if it differentiates groups but cannot differentiate anything within the groups, and validation AUC remained high. A baseline run was executed with a gradient boosted model, with almost perfect results, because the trees divide on the actual values and the scaling on which the network depends is not important to them. Both of the tests we would have used would have told us that the pipeline was healthy.
 
-This isn't, of course, comfortable, as running a simple baseline is good advice. It is common practice for tabular and physical data to be checked by tree ensembles and they are typically the correct choice \citep{chen2016,grinsztajn2022,shwartz2022}. In fact, the very property that makes them good checks in general (invariance to the scale of the features) is the one that makes them insensitive to this specific defect. The check cannot fail the model, so it passes it.
+This isn't, of course, comfortable, as running a simple baseline is good advice. It is common practice for tabular and physical data to be checked by tree ensembles and they are often a strong choice \citep{chen2016,grinsztajn2022,shwartz2022}. In our controlled comparison, the particular XGBoost baseline is invariant to the monotone rescaling that damages the network, so its success does not test whether this network can use the compressed signal. Other tree-based checks, other feature audits, or trees exposed to a non-monotone or information-destroying preprocessing error could diagnose other failures; our evidence does not say otherwise.
 
 We make three contributions. It is first a controlled decomposition of the collapse, which distinguishes pooling over time from pooling across groups, and shows only the latter to be deadly. Second, a demonstration that a scale-invariant baseline actually approves of the broken configuration, as well as an inexpensive diagnostic that does notice it. Third, another failure of the same kind: the model has no access to a rare class that can be recovered from its own input. We also report something that limits how much the first two matter in practice, which is that the application that inspired them doesn't need a sequence model at all.
 
@@ -68,9 +68,31 @@ Normalisation is crucial for training deep networks, and there are standard laye
 
 When a shortcut is there, a network will easily learn the easy signals and take the shortcut over the intended structure \citep{geirhos2020,shah2020}. Previous research on Clever-Hans behaviour demonstrates that the models achieve good scores for reasons that are not related to the task \citep{lapuschkin2019}. If the scales are grouped and are not homogenous, there is an exceptionally clean shortcut, the distance between the group centroids. This type of model simply memorizes the difference, and has validation AUC of $>$0.95 but performs no better inside individual groups. That's what we saw. Here, our contribution is a diagnostic (spread of the predictions within a group) which does not need any label and is quite different from the common underfitting. It is also not a modelling problem, but a pipeline level problem, like many which can be found in the shared preprocessing code that no single model owns \citep{chaudhary2018}.
 
-Tree ensembles perform well on tabular and physical data, and often perform with the same or better results than deep models \citep{chen2016,grinsztajn2022,shwartz2022,ke2017,pasaribu2024}, and most practitioners turn to a tree as a baseline for that reason. Their splits are axis-aligned and threshold-based, with a monotone rescaling of a feature having no effect on the splits. It's typically a good thing that it's invariant. It also makes them unable to identify a deadly error in the preprocessing, an error that results in a failure of the network.
+Tree ensembles perform well on tabular and physical data, and often perform with the same or better results than deep models \citep{chen2016,grinsztajn2022,shwartz2022,ke2017,pasaribu2024}, and many practitioners turn to a tree as a baseline for that reason. Their splits are axis-aligned and threshold-based, so a monotone rescaling can preserve the available ordering. That useful invariance is why the tested XGBoost baseline misses this particular cross-group scaling failure when it receives the same transformed arrays; it does not imply that tree baselines are generally unable to identify preprocessing errors.
 
 The standard ways to overcome a serious imbalance are reweighting, focal loss or resampling \citep{buda2018,lin2017,cui2019}, and the effect of imbalance on the actual learning of a deep classifier is explored in great detail \citep{dong2025}. The two model families have different reactions to it, which is a reason why it is worthwhile to make a comparison at all \citep{wu2021}. In Section~\ref{sec:rare} we report a case in which none of that is the issue: oversampling a rare failure mode by a factor of 19.2 doesn't move its recall at all, but a tree on the same window separates it almost perfectly. It's the same with the evidence in the space domain. The ESA anomaly benchmark shows that current sequence models still struggle with the rare but important events in real satellite telemetry \citep{kotowski2024}, and rare anomaly detection there is still active enough to need uncertainty-aware methods \citep{sadr2022}. This is a type of data that carefully designed LSTM pipelines are able to perform well on when the data is correctly processed in all channels \citep{hundman2018}. It's not the model class, it's the engineering that makes the difference.
+
+The word `collapse' also needs disambiguation. Neural collapse conventionally describes the terminal-phase geometry of within-class representations and classifiers after training error vanishes \citep{papyan2020}; our outcome is different: predictions over distinct missions become nearly constant after cross-group scaling. Work on predictive uncertainty under shift shows that confidence and calibration can deteriorate when the deployment distribution changes \citep{ovadia2019}, while two-sample tests can detect changes between reference and incoming feature distributions without target labels \citep{rabanser2019}. Production-readiness rubrics likewise call for data, model, and serving-pipeline monitors rather than relying on a single held-out score \citep{breck2017}. Table~\ref{tab:related-comparison} makes these boundaries explicit.
+
+\begin{table*}[t]
+\centering
+\caption{Comparison with adjacent diagnostics. Label-free inference does not remove the need for development-time threshold calibration and evaluation.}
+\label{tab:related-comparison}
+\scriptsize
+\renewcommand{\arraystretch}{0.9}
+\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\textwidth}{@{}p{0.17\textwidth}p{0.20\textwidth}p{0.16\textwidth}p{0.15\textwidth}X@{}}
+\toprule
+Prior method & Failure detected & Label requirement & Dependence on a reference model & Limitation addressed by our approach \\
+\midrule
+Neural-collapse geometry \citep{papyan2020} & Terminal class-feature geometry & Class labels; internal activations & No external model & Targets output constancy from grouped preprocessing, not terminal-phase geometry. \\
+Predictive uncertainty \citep{ovadia2019} & Uncertainty and calibration under shift & Labels for evaluation & Method-dependent; often ensembles & Directly tests a distinct output degeneracy. \\
+Dataset-shift tests \citep{rabanser2019} & Source--target distribution change & No target labels for alarm & Reference distribution; sometimes a domain classifier & Tests within-group model outputs, not only input shift. \\
+ML pipeline validation \citep{breck2017} & Broad data, training, serving regressions & Test-dependent & Schema, baseline, or prior version & Supplies a concrete group-level output invariant. \\
+This work & Near-constant within-group predictions & None to compute; labels to calibrate/evaluate & None for spread; optional XGBoost triage & Isolates cross-target pooling and separates collapse from low AUC. \\
+\bottomrule
+\end{tabularx}
+\end{table*}
 
 Networks have been successfully applied in astrodynamics for trajectory optimization, approximation of optimal control \citep{izzo2019survey,izzo2024,sanchez2018}, cost estimation without complete propagation \citep{li2020deep,izzo2019ml} and learning of a robust low thrust policy with certification via Monte Carlo \citep{zavoli2021}. Learned models also correct orbit predictions from sparse tracking \citep{li2020orbit}, stand in for Monte Carlo when propagating orbit uncertainty forward \citep{zhou2024}, and are used for anomaly and fault detection in spacecraft telemetry \citep{ibrahim2019,naik2020}, where the same family of attention architectures is used as here \citep{jiang2023}. Screening specifically, by means of a learned model selecting which of a very large number of candidate cases get full analysis, is already recognized: an ESA competition on real conjunction data \citep{uriot2020,acciarini2021}, and a benchmark of deep approaches against the classical filters they would replace \citep{stevenson2023}. The final one is the most similar setting, a screening task on a deterministic astrodynamics simulator, measured against non-deep baselines. We could not find an article in this literature that considers early termination of individual Monte Carlo trajectory runs as we do in Section~\ref{sec:screen}. The closest work decreases the cost of each propagation rather than deciding which propagations to start \citep{massari2017,jia2022}. The general idea is to use a learned surrogate instead of part of an expensive simulation \citep{yin2022}.
 
@@ -117,17 +139,25 @@ The second result is that the collapse is selective, and we report that alongsid
 
 One note on scope. This ablation isolates normalisation and no other component of the model, so only the statistics are pooled, with one model trained for each target. The production failure also shared a single trunk across the group, which compounds the problem, since one trunk then has to serve targets whose inputs have all been flattened in the same direction, towards a constant. These numbers therefore represent a minimum damage level of the configuration. They show that pooled normalisation is sufficient on its own to destroy a target, and not that this is a complete reconstruction of the original incident.
 
-Under the grouped setting the tree reports AUC 1.0000 on Venus, the target where the network has collapsed to a constant at AUC 0.6037. Tree AUC changes by at most 0.0002 across settings on all targets, which implies that the choice is not really visible to the tree. Now if one runs it and checks whether or not the features have signal, doing the right and proper thing, he will get an unambiguous yes, and reasonably assume that the deep model needs tuning, and not that the pipeline is broken.
+Under the grouped setting the tested XGBoost configuration reports AUC 1.0000 on Venus, the target where the network has collapsed to a constant at AUC 0.6037. Its AUC changes by at most 0.0002 across settings on all targets, which implies that this normalization choice is not visible to this baseline. It therefore establishes that discriminative ordering remains in the transformed arrays, but it does not establish that the deep model can exploit the remaining magnitude of variation.
 
-This is the methodological part and it's crucial to pay attention to the exact claim. The information is there and a tree can use it. The baseline is not informative on the question that has to be answered, which is `can the network use it?'. Invariance to feature scaling is typically a good reason to reach for a tree as a diagnostic, and is precisely why it is blind here. The check is orthogonal to the defect by construction, so no matter how carefully one works the check could not have helped.
+This is the methodological part and it's crucial to pay attention to the exact claim. The information is there and this tree can use it. This particular baseline comparison is not informative on the question that has to be answered, which is `can the network use the compressed signal?'. Its invariance to this rescaling makes this check orthogonal to this defect. That statement is deliberately narrower than claiming that tree baselines cannot diagnose preprocessing errors in general.
 
 Accuracy on a mixed validation set does not catch the collapse, because a per group constant ranks the groups correctly and a pooled metric rewards that. It's picked up by two checks.
 
-Prediction spread within a group. When a model is collapsed there will be very little variation of the model's output for varying input. This is a property of the predictions alone, needs no labels, and is quite different from ordinary underfitting, where the predictions are wrong but still vary.
+Prediction spread within a group. For group $g$ with a batch of $n_g$ predictions, we compute $s_g=\operatorname{sd}\{P(\mathrm{fail}\mid x_i):i\in g\}$. This statistic is label-free at inference: it uses predictions and group membership, not outcomes. Labels are nevertheless needed during development to decide which low-spread states are harmful, calibrate an alert level, and estimate false alarms and missed detections.
 
-Tree against network under the same preprocessing. If the tree has a big lead with both fed the same array, then the information is there and the network can't use it, rather than the information being absent.
+Tested XGBoost against the network under the same preprocessing. If XGBoost has a big lead with both fed the same array, then usable ordering remains for that model while the network has failed to exploit the compressed signal.
 
-Both are inexpensive and neither necessitates that you think you are going to come across this particular defect beforehand, and that's the important thing that makes a diagnostic worth having. When building a model on grouped data with scales that differ, we would recommend reporting the prediction spread per group in addition to the overall numbers. In our case it would have turned a problem that survived a series of review cycles into a one line check.
+Both are inexpensive and neither necessitates that one predicts this exact defect beforehand. In the reported experiments, `collapsed' was assigned when $s_g<10^{-3}$. This rule was written into the experiment before the additional multi-seed replication, but after the original single-run incident; it was a heuristic definition, not a threshold optimized on labelled validation cases. Test labels and test AUC were not used to choose it, although held-out predictions were used to report the spread. The resulting state labels therefore cannot also serve as independent ground truth for sensitivity or specificity: doing so would be circular. The evidence supports the statistic as a conspicuous signature in this experiment, not $10^{-3}$ as a universal operating threshold.
+
+\subsection{Mission-assurance interpretation and operational use}
+
+\textbf{Demonstrated result.} Within the GMAT experiment, the group-level output statistic exposes four near-constant Venus runs that a pooled AUC and the tested XGBoost comparison do not identify. Because it checks the behaviour at the preprocessing--model interface, the same form of invariant can supplement verification and validation in other simulation-screening pipelines: it tests whether changing candidate inputs still changes the learned screen. It does not validate the trajectory propagator, prove physical correctness, certify flight software, or establish a threshold outside the evaluated configuration.
+
+\textbf{Operational implication.} If an analogous collapse remained undetected in a mission-design campaign, the screen could assign nearly the same disposition to materially different candidates. Depending on that constant and the decision threshold, it could discard viable trajectories, retain expensive failures, distort estimates of feasible-region size, and bias trade studies or robustness margins. A healthy aggregate score from other target groups could conceal the affected group and create false confidence in the campaign. These consequences are failure analyses, not outcomes measured in a flight campaign.
+
+\textbf{Proposed pipeline.} During development, the team would generate labelled working, degraded, and intentionally fault-injected validation states for each dataset--architecture--target-group--preprocessing version. It would calibrate a group-specific spread threshold and a minimum batch size on those validation states, freeze both before the untouched test evaluation, and record false-alarm and miss rates with uncertainty. At runtime, each screening batch would log model, scaler, data, and group versions; compute $s_g$ alongside robust spread, input-signal, and feature-shift checks; and compare only with the matching frozen limits. An alarm would quarantine the learned screen, preserve all candidates, and fall back to the full-fidelity propagation rather than aborting trajectories. An XGBoost comparison can aid offline triage by asking whether information remains in the same arrays, but is not required to compute the inference-time statistic. Once delayed outcomes are available, they would support periodic re-evaluation and versioned recalibration---never silent transfer of a threshold from another domain.
 
 \begin{table}[t]
 \centering
@@ -166,7 +196,7 @@ Jupiter & 0.7708 & 1.0000 & 4.78e-01 & 0.0763 & 1.0000 & 4.78e-01 & 0.0247 & 0.9
 
 \begin{table}[t]
 \centering
-\caption{XGBoost on the same normalised window, for each setting. The tree is not affected by the preprocessing which destroys the network.}
+\caption{The tested XGBoost model on the same normalised window for each setting. Its AUC is nearly invariant to the particular rescaling that destroys the network.}
 \label{tab:xgb}
 \begin{tabular}{@{}lcccc@{}}
 \toprule
@@ -183,7 +213,7 @@ Jupiter & 1.0000 & 1.0000 & 1.0000 & 0.0000 \\
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{fig4.png}
-\caption{Both models under grouped normalisation, on the same arrays. The tree is at the ceiling on every target, including the one where the network is just above chance.}
+\caption{Both models under grouped normalisation on the same arrays. The tested XGBoost model is at the ceiling on every target, including the one where the network is just above chance.}
 \label{fig:tree}
 \end{figure}
 
@@ -194,11 +224,11 @@ Is it spread by seed? All of the above is problematic in that it's one run deep.
 
 Compression is not dependent on seed. The signal ratio for Venus under grouped normalisation lands between 0.00222 and 0.00232 across all 5 runs, a spread of 5\% against the compression of 335x itself. The healthy condition is stable too. The difference in per timestep AUC between two different seeds is at most 0.0010. There is no seed on which Mars, Mercury or Jupiter collapse.
 
-It depends on the seed whether the network escapes or not. Venus collapses to a constant on 4 of 5 seeds, with prediction spread on unseen missions ranging from 1.57e-05 to 4.84e-05, which is 4 orders of magnitude lower than the 4.66e-01 obtained by correct normalisation. On the remaining seed it doesn't collapse, and it doesn't recover either: prediction spread 3.64e-02, still an order of magnitude short, at AUC 0.9305 against a healthy 0.9999. The preprocessing is then always sufficient for the collapse, but the collapse itself is not certain, only the usual outcome.
+It depends on the seed whether the network escapes or not. Venus meets the pre-specified experimental rule $s_g<10^{-3}$ on 4 of 5 seeds, with prediction spread on unseen missions ranging from 1.57e-05 to 4.84e-05, which is 4 orders of magnitude lower than the 4.66e-01 obtained by correct normalisation. On the remaining seed it doesn't meet the collapse rule, and it doesn't recover either: prediction spread 3.64e-02, still an order of magnitude short, at AUC 0.9305 against a healthy 0.9999. The observed recurrence is 4/5, with a 95\% Wilson interval of 0.376--0.964. That wide interval describes recurrence of the defined state under these seeds; it is not a confidence interval for detector sensitivity and does not support universal reliability.
 
 This is the real reason for the prediction spread diagnostic above. The range of grouped AUC for Venus over these runs is 0.5338 to 0.9305, which overlaps that of a merely weakened target. Mercury sits inside that range on every seed while still telling missions apart. AUC is thus unable to distinguish the two states. Prediction spread can. There are orders of magnitude between the collapsed runs and all the healthy runs. If you have to keep tabs on one number for this failure, watch that one.
 
-The blindness of the baseline is repeated to a greater degree. Across 5 seeds, 4 targets and three normalisation settings, which is 60 fitted trees in total, the tree's AUC stays within the range 0.9989 to 1.0000, and within each seed and target the AUC difference is at most 0.0003 between settings. There is no seed on which the baseline notices. That matters more than the number of collapses. The collapse is one target's misfortune, but a check that can't fail is a property of the check.
+The same invariance appears across the replication. Across 5 seeds, 4 targets and three normalisation settings, which is 60 fitted XGBoost models in total, AUC stays within 0.9989--1.0000, and within each seed and target the AUC difference is at most 0.0003 between settings. Thus this tested baseline does not distinguish these normalization conditions. This is evidence about one baseline--failure pairing, not all tree-based diagnostics.
 
 \begin{table}[t]
 \centering
@@ -284,6 +314,8 @@ Cascade: T0 where confident, else T40 & 65.0\% & 1.62\% & 99.94\% \\
 \end{tabular}
 \end{table}
 
+For the T0 screen, an additional five-split analysis (seeds 0--4) gives compute saved $64.50\%\pm0.61$ percentage points, good missions lost $1.24\%\pm0.24$ percentage points, and failure recall $98.99\%\pm0.18$ percentage points (mean $\pm$ standard deviation across five splits). The T40 and cascade rows in Table~\ref{tab:economics} remain single seed-42 estimates and are not presented with an interval. The multi-seed T0 result narrows sampling uncertainty for that screen, but five correlated resplits of one synthetic corpus do not measure cross-campaign or cross-domain uncertainty.
+
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{fig7.png}
@@ -295,9 +327,12 @@ Cascade: T0 where confident, else T40 & 65.0\% & 1.62\% & 99.94\% \\
 \label{sec:limitations}
 
 \begin{itemize}
-\item Seeds. Replication: 5 seeds. This is enough to exclude an unfortunate initialisation, but not to warrant a narrow confidence interval. We report the spread of the individual runs and not a fitted interval. The collapse itself comes at 4/5, and the exception is likely subject to a controlling factor, but that just isn't known with a small sample.
-\item One corpus. The collapse is shown on one data set. We outline the mechanism in terms of a variance ratio which is not specific to astrodynamics, but we have not reproduced it on a second data set and any threshold on this ratio that makes a claim to predicting the collapse is therefore a guess, rather than a discovery.
-\item Four targets in the ablation. 1 of 4 targets collapses. All four agree on the result concerning the blind baseline, which is the half concerning method.
+\item Seeds. Replication is limited to 5 seeds. The observed 4/5 recurrence has a wide 95\% Wilson interval (0.376--0.964), and detector sensitivity or specificity cannot be estimated because the same spread rule defines the reported states. Five seeds exclude neither an unknown controlling factor nor substantial uncertainty.
+\item Threshold scope. The $s_g<10^{-3}$ rule was fixed before the multi-seed extension and was not selected using test labels or test AUC, but it followed the original incident and was not calibrated on an independent library of working and collapsed states. It is not expected to transfer unchanged to another dataset, model architecture, output calibration, target group, prevalence, or batch size. A new operational context needs labelled development experiments for calibration and an untouched test for evaluation; the runtime statistic itself can then remain label-free.
+\item One corpus. The collapse and its rule are shown on one synthetic GMAT corpus. No cross-domain transfer experiment is included in the auditable artifacts for this paper. We outline a mechanism in terms of a variance ratio, but do not claim a universal compression or prediction-spread threshold.
+\item Four targets in the ablation. 1 of 4 targets collapses, and all collapsed runs are Venus. Additional target combinations and alternative group definitions are required to estimate sensitivity to group composition. The four targets agree only that the tested XGBoost AUC is nearly invariant across these normalization settings.
+\item Architecture scope. An LSTM control on the ordinary, correctly preprocessed screening task reaches test AUC 0.9928 versus 0.9958 for the Transformer, showing that the base task is not unique to one sequence architecture. The LSTM was not run under grouped normalization, so whether this collapse generalises beyond the Transformer configuration remains open.
+\item Severity range. The present rule detects exact or near-exact constancy. We have not constructed graded signal compression, near-constant outputs, or mildly degraded discrimination with independent state labels, and therefore do not report false alarms or missed detections over that broader range.
 \item Synthetic and deterministic. There are no execution errors, no unmodelled accelerations, no sensor noise and all missions of a target have a common time base. This common time base is what makes standardisation per timestep possible at all and it is not a property of a real campaign, but of the generator.
 \item No real mission data. This is the most serious issue of external validity. There are now available real satellite telemetry public benchmarks \citep{kotowski2024,hundman2018} and they are the natural next benchmarks for the diagnostic.
 \end{itemize}
@@ -305,9 +340,9 @@ Cascade: T0 where confident, else T40 & 65.0\% & 1.62\% & 99.94\% \\
 \section{Conclusion}
 \label{sec:conclusion}
 
-In the case that a feature scaler is used in multiple groups, where each group has their own scale, then a deep model can become into a per group constant, and a tree on the same arrays will return that the solution has been found. None of the pieces here are exotic. One of the default decisions of a standard pipeline is the preprocessing. The model used is just a plain Transformer. The usual one, that the people would pick up is the baseline. The standard defence, the checking of a simple baseline, is constructed so as not to be able to see the defect, which makes it impossible to fail the broken model.
+When one scaler is pooled across groups with different scales, the tested Transformer can become a per-group constant while the tested scale-invariant XGBoost baseline still finds the same arrays separable. None of the pieces here are exotic: the defect enters through preprocessing and survives pooled validation. The exact conclusion is not that trees cannot diagnose preprocessing, but that a diagnostic invariant to this transformation cannot answer whether a magnitude-sensitive network can use the compressed signal.
 
-We don't claim the fix, normalisation per group, to be new. The problem to be solved is the detection problem: there is a check which is executed regularly and which certifies a broken configuration, and then another check which is not expensive, but which catches the broken configuration. If the range of the predictions in each group had been given in addition to the summary numbers, we would have spotted ours quickly.
+We don't claim the fix, normalisation per group, to be new. The detection lesson is to monitor group-level output behaviour in addition to pooled scores and baselines. Computing prediction spread requires no inference-time labels, but turning it into a go/no-go alarm requires version-specific calibration and independent labelled evaluation during development. Our experiment demonstrates a conspicuous signature and a failure mechanism; the mission-assurance workflow, threshold transfer study, broader severity sweep, and fall-back policy are operational implications still to be validated.
 
 \section{Code and Data Availability}
 \label{sec:code}
@@ -315,12 +350,12 @@ We don't claim the fix, normalisation per group, to be new. The problem to be so
 All the scripts for the experiments, the JSON artifacts that each number is read from, the code for the figures and the source of this document are at \url{https://github.com/Haise-727/gmat-pred}. A short map of where things are:
 
 \begin{sloppypar}
-\texttt{src/ml/} holds the experiments. \texttt{norm\_ablation.py} produces Table~\ref{tab:ablation}, \texttt{baseline\_invariance.py} Table~\ref{tab:xgb}, \texttt{rare\_mode\_sweep.py} Table~\ref{tab:oversample} and \texttt{prune\_economics.py} Table~\ref{tab:economics}. All of them share the same definition of the train/validation/test partition, in \texttt{splits.py}.
+\texttt{src/ml/} holds the experiments. \texttt{norm\_ablation.py} produces Table~\ref{tab:ablation}, \texttt{baseline\_invariance.py} Table~\ref{tab:xgb}, \texttt{rare\_mode\_sweep.py} Table~\ref{tab:oversample}, \texttt{prune\_economics.py} Table~\ref{tab:economics}, and \texttt{multi\_seed\_economics.py} the T0 uncertainty summary. All share the same definition of the train/validation/test partition in \texttt{splits.py}.
 \end{sloppypar}
 
 \texttt{src/ml/model.py} is the Transformer, and \texttt{planet\_config.py} holds the target list, the cadences and the recorded reason the Moon is excluded.
 
-\texttt{reports/} holds the measured artifacts. Every table and figure in this document comes from one of those JSON files, and \texttt{multiseed\_paper/} holds the runs at each seed behind Table~\ref{tab:multiseed}.
+\texttt{reports/} holds the measured artifacts. Every reported number comes from one of those JSON files; \texttt{multiseed\_paper/} holds the runs behind Table~\ref{tab:multiseed}, and \texttt{prune\_economics\_multiseed.json} holds the additional T0 split-seed analysis.
 
 \texttt{docs/RESEARCH\_LEDGER.md} is the complete decision history, including two analyses that were invalidated by a positional join and the corrections that replaced them. \texttt{docs/LIMITATIONS.md} states what the results do not support.
 

@@ -66,6 +66,12 @@ REGIME_GROUPS = {
 #   grouped       pooled across timesteps AND across planets   (the regime models)
 CONDITIONS = ["per-timestep", "global", "grouped"]
 
+# Heuristic experimental definition introduced before the multi-seed extension.
+# It was not fitted to labels or AUC and is not a transferable operational
+# threshold. Deployment calibration requires independently labelled development
+# states for each dataset/model/group/preprocessing version.
+COLLAPSE_STD_THRESHOLD = 1e-3
+
 
 def group_of(planet: str) -> list[str]:
     for members in REGIME_GROUPS.values():
@@ -174,7 +180,7 @@ def main() -> int:
 
             val_auc = meta["best_val_auc"]
             test_f1 = meta["test_at_operating_point"]["f1"]
-            collapsed = pred_std < 1e-3
+            collapsed = pred_std < COLLAPSE_STD_THRESHOLD
             verdict = "COLLAPSED — constant output" if collapsed else "discriminating"
 
             print(f"  {planet:9} {mode:13} {sig:>10.6f} {val_auc:>9.4f} "
@@ -226,6 +232,16 @@ def main() -> int:
         "description": "C1 controlled normalisation ablation",
         "seed": args.seed, "epochs": args.epochs,
         "operating_frac": OPERATING_FRAC,
+        "collapse_definition": {
+            "statistic": "std of P(fail) over held-out missions within target",
+            "operator": "<",
+            "threshold": COLLAPSE_STD_THRESHOLD,
+            "label_free_statistic": True,
+            "threshold_provenance": (
+                "heuristic fixed before the multi-seed extension; not optimized "
+                "on validation labels, test labels, or AUC; not claimed to transfer"
+            ),
+        },
         "protocol": ("identical architecture, seed and split; only the "
                      "normalisation differs. signal_ratio is the mean "
                      "within-timestep std of normalised features; pred_std is "
