@@ -21,12 +21,12 @@ column.
 | Title | Same as the Word file |
 | Authors | Three. The third author is Valarmathi P., the corresponding author |
 | Affiliation and email | Filled in: SCOPE, Vellore Institute of Technology, Chennai. Email `valarmathi.sudhakar@vit.ac.in` |
-| Abstract | 252 words (the journal says about 250). AUC and standard deviation are defined, and the AI contribution and the engineering application are stated |
+| Abstract | 220 words (the journal says about 250). AUC and standard deviation are defined, and the AI contribution and the engineering application are stated |
 | Keywords | The original six, unchanged |
 | Sections | 1 to 11. Sections 6 and 7 are new (see the changes below). The rest keep the Word file's titles |
-| Tables | 6. Every cell matches the files in `reports/`. In Table III the spread is the population standard deviation over the 5 seeds (divide by n) |
+| Tables | 7. Every cell matches the files in `reports/`. In Table III the spread is the population standard deviation over the 5 seeds (divide by n) |
 | Figures | 6 PNG files. Figures 1 to 5 have the original captions. Figure 6 is new |
-| References | 40 BibTeX entries, every one cited |
+| References | 44 BibTeX entries, every one cited |
 | Declaration | The journal's generative AI declaration, above the references |
 | Highlights | 5, in `highlights.docx` and `highlights.tex` |
 | Graphical abstract | `graphical_abstract.tiff`, drawn by `graphical_abstract.py` from `reports/`. Optional for EAAI |
@@ -79,6 +79,7 @@ These change what the paper says. Each one was checked against the files in
 | 19 | Limitations | Rewritten as six shorter bullets that match the new sections | Follows from 15 to 17 |
 | 20 | Abstract, Conclusion | The abstract no longer mentions the second failure and now mentions the threshold and the turbofan data. One sentence was added to the Conclusion | Follows from 15 to 17 |
 | 21 | Word file | The seven figures were missing from the earlier root copy of the Word file (the images were in the file but the pages did not point to them). They were put back, and the figures were renumbered to match | A fault in the earlier copy, found while updating it |
+| 22 | Throughout | The co-author's revisions were merged: the title and tree claims narrowed to the tested XGBoost baseline, a related-work comparison table (four new references), a mission-assurance subsection, the label-free versus calibrated threshold wording, a Wilson interval for the 4/5 collapse rate, and a five-split T0 economics summary | Reviewer questions on scope and threshold. Our own threshold wording was changed to say the AUC cutoff was chosen after the results were seen |
 
 ---
 
