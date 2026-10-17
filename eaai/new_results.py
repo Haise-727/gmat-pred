@@ -88,8 +88,25 @@ def figure():
     fig.savefig(HERE / "fig6.png", facecolor="white")
 
 
+def protocol_table() -> str:
+    """Cutoff sweep with the spread score and three other label-free summaries."""
+    pr = json.loads((REPORTS / "diagnostic_protocol.json").read_text())
+    alts = pr["alternative_summaries_roc_auc"]
+    rows = []
+    for e in [x for x in pr["cutoff_sweep"] if x["cutoff"] in (0.60, 0.70, 0.80, 0.85, 0.90, 0.95)]:
+        c = f"{e['cutoff']:.2f}"
+        thr = f"{e['threshold']:.1e}".replace("e-0", "e-0") if e["val_separable"] else "none"
+        missed = str(e["test_missed"]) if e["val_separable"] else "n/a"
+        fa = str(e["test_false_alarms"]) if e["val_separable"] else "n/a"
+        roc = [f"{alts[k][str(e['cutoff'])]:.3f}" for k in ("S", "iqr", "range", "neg_entropy")]
+        rows.append(f"{c} & {e['n_collapsed_val']}/{e['n_collapsed_test']} & {thr} & {missed} & {fa} & " + " & ".join(roc) + " \\\\")
+    return "\n".join(rows)
+
+
 if __name__ == "__main__":
     figure()
     print(states_table())
     print()
     print(cmapss_table())
+    print()
+    print(protocol_table())

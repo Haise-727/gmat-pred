@@ -59,7 +59,13 @@ abstract length, so those lines say so.
 
 ## Files
 
-- `manuscript_taes.tex` and `manuscript_taes.pdf`: the TAES version, 12 pages.
+- `manuscript_taes.tex` and `manuscript_taes.pdf`: the TAES version, 13 pages.
 - `make_taes.py`: rebuilds the `.tex` from `eaai/manuscript.tex`, so the text stays the same.
 - `IEEEtaes.cls`, `IEEEtaes.bst`: the official class and bibliography style.
-- Word version of the TAES paper: `OrbitGuard_TAES.docx` in the repository root.
+- `make_taes_word.py` and `OrbitGuard_TAES.docx` (repository root): the Word version, built from
+  the official TAES Word template (`docs/paper/TAES_Word_Template.zip`, the Regular paper file).
+  It uses the template's own page size, two columns, footers and paragraph styles, and takes its
+  text from `manuscript_taes.tex`, so the Word and PDF versions say the same thing.
+- The title is the one recommended in the review notes: "Detecting Prediction Collapse Caused by
+  Pooled Feature Normalization in Space-Trajectory Screening". The spelling is American in the TAES
+  versions only. The replication scripts listing is not in the TAES versions.

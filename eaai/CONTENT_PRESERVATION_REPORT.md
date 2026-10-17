@@ -24,7 +24,7 @@ column.
 | Abstract | 220 words (the journal says about 250). AUC and standard deviation are defined, and the AI contribution and the engineering application are stated |
 | Keywords | The original six, unchanged |
 | Sections | 1 to 11. Sections 6 and 7 are new (see the changes below). The rest keep the Word file's titles |
-| Tables | 7. Every cell matches the files in `reports/`. In Table III the spread is the population standard deviation over the 5 seeds (divide by n) |
+| Tables | 8. Every cell matches the files in `reports/`. In Table III the spread is the population standard deviation over the 5 seeds (divide by n) |
 | Figures | 6 PNG files. Figures 1 to 5 have the original captions. Figure 6 is new |
 | References | 44 BibTeX entries, every one cited |
 | Declaration | The journal's generative AI declaration, above the references |
@@ -80,6 +80,10 @@ These change what the paper says. Each one was checked against the files in
 | 20 | Abstract, Conclusion | The abstract no longer mentions the second failure and now mentions the threshold and the turbofan data. One sentence was added to the Conclusion | Follows from 15 to 17 |
 | 21 | Word file | The seven figures were missing from the earlier root copy of the Word file (the images were in the file but the pages did not point to them). They were put back, and the figures were renumbered to match | A fault in the earlier copy, found while updating it |
 | 22 | Throughout | The co-author's revisions were merged: the title and tree claims narrowed to the tested XGBoost baseline, a related-work comparison table (four new references), a mission-assurance subsection, the label-free versus calibrated threshold wording, a Wilson interval for the 4/5 collapse rate, and a five-split T0 economics summary | Reviewer questions on scope and threshold. Our own threshold wording was changed to say the AUC cutoff was chosen after the results were seen |
+| 23 | Introduction, Section III, Section IV | Informal wording rewritten in plain scientific language ("another kettle of fish", "This isn't, of course, comfortable", "isn't a straw man", "the fix is easy", "Someone could say") and the remaining contractions expanded | Reviewer notes on language |
+| 24 | Introduction, Related Work, Section IV, abstract | The claim that a mixed validation score "remained high" was replaced by measured values. For Mercury, Venus and Mars pooled, the AUC falls from 0.9995 to 0.875 under grouped normalisation, against 0.687 for Venus alone | `reports/diagnostic_protocol.json`. The old claim came from the original incident and is not in the saved artifacts |
+| 25 | Section VI | The protocol is stated step by step. The AUC cutoff of 0.85 was set after the validation and test AUCs were seen. A cutoff sweep, a threshold set on other seeds, four other label-free summaries, batch size and temperature checks were added, with a new table | Reviewer notes on threshold selection. All numbers from `reports/diagnostic_protocol.json`, made by `src/ml/diagnostic_protocol.py` |
+| 26 | Limitations | The threshold bullet now says a single threshold can be set only for cutoffs of 0.85 and 0.90, and that single-outcome batches were not tested | Follows from 25 |
 
 ---
 
