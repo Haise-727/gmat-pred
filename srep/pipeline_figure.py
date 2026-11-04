@@ -38,7 +38,7 @@ box(0.10, 2.55, 1.95, 1.85, "data", "1. Simulation",
 box(2.35, 2.55, 1.95, 1.85, "data", "2. Telemetry",
     ["13 features per step", "about 100 steps", "the screen sees the", "first 40% of flight"])
 box(4.60, 2.55, 2.25, 1.85, "prep", "3. Feature scaling",
-    ["median and IQR from:", "per timestep (correct)", "one target (global)", "a group of targets (grouped)"])
+    ["statistics taken from:", "per timestep (correct)", "one target (global)", "a group of targets (grouped)"])
 box(7.15, 3.52, 2.75, 0.88, "model", "4a. Transformer screen", ["P(fail) for each mission"])
 box(7.15, 2.55, 2.75, 0.88, "model", "4b. XGBoost baseline", ["same scaled arrays"])
 arrow(2.05, 3.47, 2.35, 3.47); arrow(4.30, 3.47, 4.60, 3.47)

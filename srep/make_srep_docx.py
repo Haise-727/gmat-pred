@@ -68,7 +68,7 @@ def gen_hyper():
         ("Failure-type sampling", "weights proportional to (1/count)\\textsuperscript{0.5}"),
         ("Model selection", "best validation AUC"),
         ("Baseline", "XGBoost, 300 trees, depth 5, learning rate 0.08"),
-        ("Second dataset", "same Transformer, 20 epochs, batch size 256, window and horizon of 30 cycles"),
+        ("Second dataset", "same Transformer, 20 epochs, batch size 256, window and horizon of 30 cycles; XGBoost with its default learning rate"),
     ]
     body = "\n".join(f"{a} & {b} \\\\" for a, b in rows)
     return ("\\begin{table}\n\\caption{Training settings. The same settings are used for all three scaling modes.}\n\\label{tab:hyper}\n"
@@ -403,7 +403,7 @@ def add_table(block):
     d.add_paragraph().paragraph_format.space_after = Pt(2)
 
 
-WIDTH = {"fig_pipeline.png": 6.2, "fig1.png": 6.0, "fig2.png": 6.2, "fig3.png": 4.3, "fig4.png": 4.3, "fig5.png": 4.3, "fig6.png": 6.0}
+WIDTH = {"fig_pipeline.png": 6.2, "fig1.png": 6.0, "fig_modes.png": 6.0, "fig2.png": 6.2, "fig3.png": 4.3, "fig4.png": 4.3, "fig5.png": 4.3, "fig6.png": 6.0}
 
 
 def add_figure(block):
