@@ -18,7 +18,7 @@ INK, SOFT = "#111111", "#555555"
 FILL = {"data": "#e8f0fb", "prep": "#fdf0e3", "model": "#e7f6ef", "check": "#f3eefb"}
 EDGE = {"data": "#2a78d6", "prep": "#e8842c", "model": "#1baf7a", "check": "#7a52c7"}
 
-fig, ax = plt.subplots(figsize=(10.0, 4.6), dpi=220)
+fig, ax = plt.subplots(figsize=(10.0, 4.6), dpi=300)
 ax.set_xlim(0, 10); ax.set_ylim(0, 4.6); ax.axis("off")
 
 
@@ -45,7 +45,7 @@ arrow(2.05, 3.47, 2.35, 3.47); arrow(4.30, 3.47, 4.60, 3.47)
 arrow(6.85, 3.70, 7.15, 3.96); arrow(6.85, 3.25, 7.15, 2.99)
 
 box(0.10, 0.10, 3.05, 1.55, "check", "Check A: pooled AUC",
-    ["one score over a group of targets", "drops from 0.9995 to 0.875,", "but hides that Venus is at 0.687"])
+    ["one score over a group of targets", "drops from 0.9995 to 0.875,", "while Venus alone is at 0.687"])
 box(3.45, 0.10, 3.05, 1.55, "check", "Check B: tree on same input",
     ["XGBoost AUC moves by at most", "0.0002 across scalings, so it", "cannot see this fault"])
 box(6.80, 0.10, 3.10, 1.55, "check", "Check C: prediction spread",
