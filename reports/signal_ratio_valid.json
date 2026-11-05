@@ -1,0 +1,486 @@
+{
+ "description": "signal ratio with padded rows (all_rows, as reported before) and over observed rows only",
+ "window_frac": 0.4,
+ "runs": [
+  {
+   "seed": 42,
+   "planet": "venus",
+   "norm_mode": "per-timestep",
+   "short_missions": 0,
+   "signal_all_rows": 0.76810265,
+   "signal_observed": 0.76810265
+  },
+  {
+   "seed": 42,
+   "planet": "venus",
+   "norm_mode": "global",
+   "short_missions": 0,
+   "signal_all_rows": 0.05178521,
+   "signal_observed": 0.05178521
+  },
+  {
+   "seed": 42,
+   "planet": "venus",
+   "norm_mode": "grouped",
+   "short_missions": 0,
+   "signal_all_rows": 0.00229001,
+   "signal_observed": 0.00229001
+  },
+  {
+   "seed": 42,
+   "planet": "mars",
+   "norm_mode": "per-timestep",
+   "short_missions": 18,
+   "signal_all_rows": 1.0829469,
+   "signal_observed": 0.76818532
+  },
+  {
+   "seed": 42,
+   "planet": "mars",
+   "norm_mode": "global",
+   "short_missions": 18,
+   "signal_all_rows": 0.04724959,
+   "signal_observed": 0.04354087
+  },
+  {
+   "seed": 42,
+   "planet": "mars",
+   "norm_mode": "grouped",
+   "short_missions": 18,
+   "signal_all_rows": 0.80054384,
+   "signal_observed": 0.79371578
+  },
+  {
+   "seed": 42,
+   "planet": "mercury",
+   "norm_mode": "per-timestep",
+   "short_missions": 0,
+   "signal_all_rows": 0.76864666,
+   "signal_observed": 0.76864666
+  },
+  {
+   "seed": 42,
+   "planet": "mercury",
+   "norm_mode": "global",
+   "short_missions": 0,
+   "signal_all_rows": 0.13205874,
+   "signal_observed": 0.13205874
+  },
+  {
+   "seed": 42,
+   "planet": "mercury",
+   "norm_mode": "grouped",
+   "short_missions": 0,
+   "signal_all_rows": 0.0484102,
+   "signal_observed": 0.0484102
+  },
+  {
+   "seed": 42,
+   "planet": "jupiter",
+   "norm_mode": "per-timestep",
+   "short_missions": 0,
+   "signal_all_rows": 0.77078915,
+   "signal_observed": 0.77078915
+  },
+  {
+   "seed": 42,
+   "planet": "jupiter",
+   "norm_mode": "global",
+   "short_missions": 0,
+   "signal_all_rows": 0.07628828,
+   "signal_observed": 0.07628828
+  },
+  {
+   "seed": 42,
+   "planet": "jupiter",
+   "norm_mode": "grouped",
+   "short_missions": 0,
+   "signal_all_rows": 0.02469554,
+   "signal_observed": 0.02469554
+  },
+  {
+   "seed": 0,
+   "planet": "venus",
+   "norm_mode": "per-timestep",
+   "short_missions": 0,
+   "signal_all_rows": 0.76705718,
+   "signal_observed": 0.76705718
+  },
+  {
+   "seed": 0,
+   "planet": "venus",
+   "norm_mode": "global",
+   "short_missions": 0,
+   "signal_all_rows": 0.05066508,
+   "signal_observed": 0.05066508
+  },
+  {
+   "seed": 0,
+   "planet": "venus",
+   "norm_mode": "grouped",
+   "short_missions": 0,
+   "signal_all_rows": 0.00222066,
+   "signal_observed": 0.00222066
+  },
+  {
+   "seed": 0,
+   "planet": "mars",
+   "norm_mode": "per-timestep",
+   "short_missions": 18,
+   "signal_all_rows": 1.0826441,
+   "signal_observed": 0.76771849
+  },
+  {
+   "seed": 0,
+   "planet": "mars",
+   "norm_mode": "global",
+   "short_missions": 18,
+   "signal_all_rows": 0.04843357,
+   "signal_observed": 0.04464971
+  },
+  {
+   "seed": 0,
+   "planet": "mars",
+   "norm_mode": "grouped",
+   "short_missions": 18,
+   "signal_all_rows": 0.77674806,
+   "signal_observed": 0.76978159
+  },
+  {
+   "seed": 0,
+   "planet": "mercury",
+   "norm_mode": "per-timestep",
+   "short_missions": 0,
+   "signal_all_rows": 0.76750028,
+   "signal_observed": 0.76750028
+  },
+  {
+   "seed": 0,
+   "planet": "mercury",
+   "norm_mode": "global",
+   "short_missions": 0,
+   "signal_all_rows": 0.13034837,
+   "signal_observed": 0.13034837
+  },
+  {
+   "seed": 0,
+   "planet": "mercury",
+   "norm_mode": "grouped",
+   "short_missions": 0,
+   "signal_all_rows": 0.04681715,
+   "signal_observed": 0.04681715
+  },
+  {
+   "seed": 0,
+   "planet": "jupiter",
+   "norm_mode": "per-timestep",
+   "short_missions": 0,
+   "signal_all_rows": 0.76676083,
+   "signal_observed": 0.76676083
+  },
+  {
+   "seed": 0,
+   "planet": "jupiter",
+   "norm_mode": "global",
+   "short_missions": 0,
+   "signal_all_rows": 0.07558821,
+   "signal_observed": 0.07558821
+  },
+  {
+   "seed": 0,
+   "planet": "jupiter",
+   "norm_mode": "grouped",
+   "short_missions": 0,
+   "signal_all_rows": 0.02425328,
+   "signal_observed": 0.02425328
+  },
+  {
+   "seed": 1,
+   "planet": "venus",
+   "norm_mode": "per-timestep",
+   "short_missions": 0,
+   "signal_all_rows": 0.76853931,
+   "signal_observed": 0.76853931
+  },
+  {
+   "seed": 1,
+   "planet": "venus",
+   "norm_mode": "global",
+   "short_missions": 0,
+   "signal_all_rows": 0.05229044,
+   "signal_observed": 0.05229044
+  },
+  {
+   "seed": 1,
+   "planet": "venus",
+   "norm_mode": "grouped",
+   "short_missions": 0,
+   "signal_all_rows": 0.00232095,
+   "signal_observed": 0.00232095
+  },
+  {
+   "seed": 1,
+   "planet": "mars",
+   "norm_mode": "per-timestep",
+   "short_missions": 18,
+   "signal_all_rows": 1.08571124,
+   "signal_observed": 0.77128857
+  },
+  {
+   "seed": 1,
+   "planet": "mars",
+   "norm_mode": "global",
+   "short_missions": 18,
+   "signal_all_rows": 0.04774227,
+   "signal_observed": 0.04400915
+  },
+  {
+   "seed": 1,
+   "planet": "mars",
+   "norm_mode": "grouped",
+   "short_missions": 18,
+   "signal_all_rows": 0.81163871,
+   "signal_observed": 0.80471653
+  },
+  {
+   "seed": 1,
+   "planet": "mercury",
+   "norm_mode": "per-timestep",
+   "short_missions": 0,
+   "signal_all_rows": 0.77130967,
+   "signal_observed": 0.77130967
+  },
+  {
+   "seed": 1,
+   "planet": "mercury",
+   "norm_mode": "global",
+   "short_missions": 0,
+   "signal_all_rows": 0.13335885,
+   "signal_observed": 0.13335885
+  },
+  {
+   "seed": 1,
+   "planet": "mercury",
+   "norm_mode": "grouped",
+   "short_missions": 0,
+   "signal_all_rows": 0.0491146,
+   "signal_observed": 0.0491146
+  },
+  {
+   "seed": 1,
+   "planet": "jupiter",
+   "norm_mode": "per-timestep",
+   "short_missions": 0,
+   "signal_all_rows": 0.77137375,
+   "signal_observed": 0.77137375
+  },
+  {
+   "seed": 1,
+   "planet": "jupiter",
+   "norm_mode": "global",
+   "short_missions": 0,
+   "signal_all_rows": 0.07769593,
+   "signal_observed": 0.07769593
+  },
+  {
+   "seed": 1,
+   "planet": "jupiter",
+   "norm_mode": "grouped",
+   "short_missions": 0,
+   "signal_all_rows": 0.0251009,
+   "signal_observed": 0.0251009
+  },
+  {
+   "seed": 2,
+   "planet": "venus",
+   "norm_mode": "per-timestep",
+   "short_missions": 0,
+   "signal_all_rows": 0.77168024,
+   "signal_observed": 0.77168024
+  },
+  {
+   "seed": 2,
+   "planet": "venus",
+   "norm_mode": "global",
+   "short_missions": 0,
+   "signal_all_rows": 0.05183613,
+   "signal_observed": 0.05183613
+  },
+  {
+   "seed": 2,
+   "planet": "venus",
+   "norm_mode": "grouped",
+   "short_missions": 0,
+   "signal_all_rows": 0.0022936,
+   "signal_observed": 0.0022936
+  },
+  {
+   "seed": 2,
+   "planet": "mars",
+   "norm_mode": "per-timestep",
+   "short_missions": 18,
+   "signal_all_rows": 1.08282697,
+   "signal_observed": 0.76838207
+  },
+  {
+   "seed": 2,
+   "planet": "mars",
+   "norm_mode": "global",
+   "short_missions": 18,
+   "signal_all_rows": 0.04759336,
+   "signal_observed": 0.04386768
+  },
+  {
+   "seed": 2,
+   "planet": "mars",
+   "norm_mode": "grouped",
+   "short_missions": 18,
+   "signal_all_rows": 0.80140138,
+   "signal_observed": 0.79454243
+  },
+  {
+   "seed": 2,
+   "planet": "mercury",
+   "norm_mode": "per-timestep",
+   "short_missions": 0,
+   "signal_all_rows": 0.76987237,
+   "signal_observed": 0.76987237
+  },
+  {
+   "seed": 2,
+   "planet": "mercury",
+   "norm_mode": "global",
+   "short_missions": 0,
+   "signal_all_rows": 0.13267559,
+   "signal_observed": 0.13267559
+  },
+  {
+   "seed": 2,
+   "planet": "mercury",
+   "norm_mode": "grouped",
+   "short_missions": 0,
+   "signal_all_rows": 0.04848618,
+   "signal_observed": 0.04848618
+  },
+  {
+   "seed": 2,
+   "planet": "jupiter",
+   "norm_mode": "per-timestep",
+   "short_missions": 0,
+   "signal_all_rows": 0.77065384,
+   "signal_observed": 0.77065384
+  },
+  {
+   "seed": 2,
+   "planet": "jupiter",
+   "norm_mode": "global",
+   "short_missions": 0,
+   "signal_all_rows": 0.07731306,
+   "signal_observed": 0.07731306
+  },
+  {
+   "seed": 2,
+   "planet": "jupiter",
+   "norm_mode": "grouped",
+   "short_missions": 0,
+   "signal_all_rows": 0.0248675,
+   "signal_observed": 0.0248675
+  },
+  {
+   "seed": 3,
+   "planet": "venus",
+   "norm_mode": "per-timestep",
+   "short_missions": 0,
+   "signal_all_rows": 0.76733536,
+   "signal_observed": 0.76733536
+  },
+  {
+   "seed": 3,
+   "planet": "venus",
+   "norm_mode": "global",
+   "short_missions": 0,
+   "signal_all_rows": 0.05126126,
+   "signal_observed": 0.05126126
+  },
+  {
+   "seed": 3,
+   "planet": "venus",
+   "norm_mode": "grouped",
+   "short_missions": 0,
+   "signal_all_rows": 0.00226939,
+   "signal_observed": 0.00226939
+  },
+  {
+   "seed": 3,
+   "planet": "mars",
+   "norm_mode": "per-timestep",
+   "short_missions": 18,
+   "signal_all_rows": 1.08453476,
+   "signal_observed": 0.76797348
+  },
+  {
+   "seed": 3,
+   "planet": "mars",
+   "norm_mode": "global",
+   "short_missions": 18,
+   "signal_all_rows": 0.04751284,
+   "signal_observed": 0.04378024
+  },
+  {
+   "seed": 3,
+   "planet": "mars",
+   "norm_mode": "grouped",
+   "short_missions": 18,
+   "signal_all_rows": 0.79333538,
+   "signal_observed": 0.78644335
+  },
+  {
+   "seed": 3,
+   "planet": "mercury",
+   "norm_mode": "per-timestep",
+   "short_missions": 0,
+   "signal_all_rows": 0.76792234,
+   "signal_observed": 0.76792234
+  },
+  {
+   "seed": 3,
+   "planet": "mercury",
+   "norm_mode": "global",
+   "short_missions": 0,
+   "signal_all_rows": 0.13185932,
+   "signal_observed": 0.13185932
+  },
+  {
+   "seed": 3,
+   "planet": "mercury",
+   "norm_mode": "grouped",
+   "short_missions": 0,
+   "signal_all_rows": 0.04793151,
+   "signal_observed": 0.04793151
+  },
+  {
+   "seed": 3,
+   "planet": "jupiter",
+   "norm_mode": "per-timestep",
+   "short_missions": 0,
+   "signal_all_rows": 0.77030933,
+   "signal_observed": 0.77030933
+  },
+  {
+   "seed": 3,
+   "planet": "jupiter",
+   "norm_mode": "global",
+   "short_missions": 0,
+   "signal_all_rows": 0.07819419,
+   "signal_observed": 0.07819419
+  },
+  {
+   "seed": 3,
+   "planet": "jupiter",
+   "norm_mode": "grouped",
+   "short_missions": 0,
+   "signal_all_rows": 0.02461985,
+   "signal_observed": 0.02461985
+  }
+ ]
+}
