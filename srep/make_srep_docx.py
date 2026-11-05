@@ -2,9 +2,13 @@
 Build the single column Word file from srep/manuscript.tex.
 
   * %%TABLE eaai:<label>%% and %%FIGURE eaai:<label>%% copy that table or figure from
-    eaai/manuscript.tex, so the numbers are the checked ones.
+    eaai/manuscript.tex, so the numbers are the checked ones. %%TABLE eaai:<label>|<caption>%%
+    replaces the caption with a shorter one.
   * %%GENTABLE dataset|hyper|signif%% builds a table from the data and result files.
-  * Sections, tables, figures and citations are numbered in order of appearance.
+  * Sections, tables, figures, equations, algorithms and citations are numbered in order of
+    appearance. Citations are written as [1], [2,3].
+  * Equations and $...$ math become Word equations (srep/omml.py). Numbers like 3.11e-05
+    are written as 3.11 x 10^-5, and P(fail) as a variable.
   * References are formatted in the Nature style from srep/references.bib.
 
     python srep/make_srep_docx.py            # writes OrbitGuard_SciRep.docx in the repo root
@@ -23,6 +27,9 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Inches, Pt, RGBColor, Cm
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from omml import omath  # noqa: E402
+
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent
 OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else REPO / "OrbitGuard_SciRep.docx"
@@ -33,6 +40,19 @@ eaai = (REPO / "eaai" / "manuscript.tex").read_text()
 
 
 # ── 1. pull shared tables and figures, build generated tables ───────────────
+def braced(m, i):
+    """Content of the balanced {...} that starts at m[i], and the index after it."""
+    depth = 0
+    for j in range(i, len(m)):
+        if m[j] == "{":
+            depth += 1
+        elif m[j] == "}":
+            depth -= 1
+            if depth == 0:
+                return m[i + 1:j], j + 1
+    raise ValueError(m)
+
+
 def env_with_label(text, kind, label):
     for m in re.finditer(r"\\begin\{(" + kind + r"\*?)\}.*?\\end\{\1\}", text, re.S):
         if "\\label{" + label + "}" in m.group(0):
@@ -48,9 +68,7 @@ def gen_dataset():
         y = z["y"]
         group = "inner" if p in ("mercury", "venus", "mars") else "outer"
         rows.append(f"{p.capitalize()} & {group} & {len(y):,} & {100 * (y == 0).mean():.1f}\\% & {int(round(z['lengths'].mean()))} & {econ[p]['prop_days']:,.0f} \\\\")
-    return ("\\begin{table}\n\\caption{The simulated missions of each target. Failure share is the share of missions labeled as failures. "
-            "Steps is the mean number of telemetry steps per mission after downsampling. Flight time is the mean simulated flight time, "
-            "which is also the propagation cost that the screen tries to save.}\n\\label{tab:dataset}\n\\begin{tabular}{llcccc}\n\\toprule\n"
+    return ("\\begin{table}\n\\caption{The simulated missions of each target.}\n\\label{tab:dataset}\n\\begin{tabular}{llcccc}\n\\toprule\n"
             "Target & Group & Missions & Failure share & Steps & Flight time (days) \\\\\n\\midrule\n" + "\n".join(rows) +
             "\n\\bottomrule\n\\end{tabular}\n\\end{table}")
 
@@ -71,7 +89,7 @@ def gen_hyper():
         ("Second dataset", "same Transformer, 20 epochs, batch size 256, window and horizon of 30 cycles; XGBoost with its default learning rate"),
     ]
     body = "\n".join(f"{a} & {b} \\\\" for a, b in rows)
-    return ("\\begin{table}\n\\caption{Training settings. The same settings are used for all three scaling modes.}\n\\label{tab:hyper}\n"
+    return ("\\begin{table}\n\\caption{Training settings of the models.}\n\\label{tab:hyper}\n"
             "\\begin{tabular}{ll}\n\\toprule\nSetting & Value \\\\\n\\midrule\n" + body + "\n\\bottomrule\n\\end{tabular}\n\\end{table}")
 
 
@@ -89,18 +107,45 @@ def gen_signif():
                     f"{r['auc_grouped']:.4f} ({r['ci_grouped'][0]:.4f} to {r['ci_grouped'][1]:.4f}) & "
                     f"{r['diff']:.4f} ({r['ci_diff'][0]:.4f} to {r['ci_diff'][1]:.4f}) & {r['mcnemar_b']}/{r['mcnemar_c']}, {pv(r['mcnemar_p'])} & "
                     f"{w['t']:.2f}, {pv(w['p'])} \\\\")
-    return ("\\begin{table}\n\\caption{Per timestep against grouped scaling on the same test missions. AUC values and 95\\% bootstrap intervals "
-            "(2,000 resamples) are for seed 42. McNemar gives the number of missions that only the per timestep model gets right and the number "
-            "that only the grouped model gets right, with the exact p value. Welch gives t and p for the test AUC across the five seeds.}\n"
+    return ("\\begin{table}\n\\caption{Statistical tests of per timestep against grouped scaling on the same test missions.}\n"
             "\\label{tab:signif}\n\\begin{tabular}{lccccc}\n\\toprule\n"
             "Target & Per timestep AUC & Grouped AUC & Difference & McNemar & Welch \\\\\n\\midrule\n" + "\n".join(rows) +
             "\n\\bottomrule\n\\end{tabular}\n\\end{table}")
 
 
-GEN = {"dataset": gen_dataset, "hyper": gen_hyper, "signif": gen_signif}
+def gen_ablation():
+    """The seed 42 ablation, with the signal ratio counted over observed steps only (src/ml/signal_ratio_valid.py)."""
+    abl = {p["planet"]: p for p in json.loads((REPORTS / "normalisation_ablation.json").read_text())["paired"]}
+    sig = {(r["planet"], r["norm_mode"]): r["signal_observed"]
+           for r in json.loads((REPORTS / "signal_ratio_valid.json").read_text())["runs"] if r["seed"] == 42}
+    rows = []
+    for p in ["venus", "mars", "mercury", "jupiter"]:
+        cells = [p.capitalize()]
+        for m in ["per-timestep", "global", "grouped"]:
+            cells += [f"{sig[(p, m)]:.4f}", f"{abl[p]['val_auc_' + m]:.4f}", f"{abl[p]['pred_std_' + m]:.2e}"]
+        rows.append(" & ".join(cells) + " \\\\")
+    return ("\\begin{table}\n\\caption{Scaling ablation on seed 42. sig: signal ratio; AUC: validation AUC; std: standard deviation of P(fail) "
+            "on unseen missions.}\n\\label{tab:ablation}\n\\begin{tabular}{lccccccccc}\n\\toprule\n"
+            " & \\multicolumn{3}{c}{per timestep} & \\multicolumn{3}{c}{global} & \\multicolumn{3}{c}{grouped} \\\\\n"
+            "Target & sig & AUC & std & sig & AUC & std & sig & AUC & std \\\\\n\\midrule\n" + "\n".join(rows) +
+            "\n\\bottomrule\n\\end{tabular}\n\\end{table}")
+
+
+GEN = {"dataset": gen_dataset, "hyper": gen_hyper, "signif": gen_signif, "ablation": gen_ablation}
 src = "\n".join(l for l in src.split("\n") if not l.startswith("%%") or re.match(r"%%(TABLE|FIGURE|GENTABLE) ", l))
-text = re.sub(r"%%TABLE eaai:([^%]+)%%", lambda m: env_with_label(eaai, "table", m.group(1)), src)
-text = re.sub(r"%%FIGURE eaai:([^%]+)%%", lambda m: env_with_label(eaai, "figure", m.group(1)), text)
+def pulled(kind, spec):
+    """The eaai table or figure, with its caption replaced when the spec gives one after a |."""
+    label, _, caption = spec.partition("|")
+    block = env_with_label(eaai, kind, label.strip())
+    if caption.strip():
+        i = block.index("\\caption{") + len("\\caption")
+        _, j = braced(block, i)
+        block = block[:i] + "{" + caption.strip() + "}" + block[j:]
+    return block
+
+
+text = re.sub(r"%%TABLE eaai:([^%]+)%%", lambda m: pulled("table", m.group(1)), src)
+text = re.sub(r"%%FIGURE eaai:([^%]+)%%", lambda m: pulled("figure", m.group(1)), text)
 text = re.sub(r"%%GENTABLE (\w+)%%", lambda m: GEN[m.group(1)](), text)
 text = text.replace("\\citep{", "\\cite{")
 text = "\n".join(l for l in text.split("\n") if not l.lstrip().startswith("%"))
@@ -146,6 +191,12 @@ for i, m in enumerate(re.finditer(r"\\begin\{table\*?\}.*?\\label\{([^}]*)\}", b
     LABELS[m.group(1)] = str(i)
 for i, m in enumerate(re.finditer(r"\\begin\{figure\*?\}.*?\\label\{([^}]*)\}", body, re.S), 1):
     LABELS[m.group(1)] = str(i)
+for i, m in enumerate(re.finditer(r"\\begin\{equation\}(.*?)\\end\{equation\}", body, re.S), 1):
+    lab = re.search(r"\\label\{([^}]*)\}", m.group(1))
+    if lab:
+        LABELS[lab.group(1)] = str(i)
+for i, m in enumerate(re.finditer(r"\\begin\{algorithm\}.*?\\label\{([^}]*)\}", body, re.S), 1):
+    LABELS[m.group(1)] = str(i)
 
 order = []
 for m in re.finditer(r"\\cite\{([^}]*)\}", body):
@@ -169,89 +220,74 @@ def cite_str(keys):
 
 
 # ── 3. LaTeX to runs ────────────────────────────────────────────────────────
-SUPMAP = str.maketrans("-0123456789", "\u207b\u2070\u00b9\u00b2\u00b3\u2074\u2075\u2076\u2077\u2078\u2079")
+# A run is (text, format). A run with format {"math": latex} becomes a Word equation.
+SCI = re.compile(r"(?<![\w.$])(\d+(?:\.\d+)?)e([-+]?)0*(\d+)(?!\w|\.\d)")
 
 
-def braced(m, i):
-    """Content of the balanced {...} that starts at m[i], and the index after it."""
-    depth = 0
-    for j in range(i, len(m)):
-        if m[j] == "{":
-            depth += 1
-        elif m[j] == "}":
-            depth -= 1
-            if depth == 0:
-                return m[i + 1:j], j + 1
-    raise ValueError(m)
+def sci_to_math(seg):
+    """3.11e-05 -> $3.11\times10^{-5}$, outside math only."""
+    out, pos = [], 0
+    for m in re.finditer(r"\$[^$]*\$", seg):
+        out.append(SCI.sub(lambda n: f"${n.group(1)}\\times10^{{{'-' if n.group(2) == '-' else ''}{n.group(3)}}}$",
+                           seg[pos:m.start()]))
+        out.append(m.group(0)); pos = m.end()
+    out.append(SCI.sub(lambda n: f"${n.group(1)}\\times10^{{{'-' if n.group(2) == '-' else ''}{n.group(3)}}}$", seg[pos:]))
+    return "".join(out)
 
 
-def math_runs(m, base):
-    out, i = [], 0
-    m = m.replace("\\,", " ")
-    while i < len(m):
-        c = m[i]
-        if m.startswith("\\hat{", i):
-            arg, i = braced(m, i + 4); out.append((arg + "\u0302", dict(base, italic=True)))
-        elif m.startswith("\\mathrm{", i) or m.startswith("\\operatorname{", i):
-            arg, i = braced(m, m.index("{", i)); out.append((arg, dict(base)))
-        elif c == "\\":
-            mm = re.match(r"\\([A-Za-z]+)", m[i:])
-            if mm is None:
-                out.append((m[i + 1], dict(base))); i += 2; continue
-            i += len(mm.group(0))
-            out.append(({"mid": " | ", "in": " \u2208 ", "pm": "\u00b1", "epsilon": "\u03b5", "le": "\u2264", "ge": "\u2265",
-                         "times": "\u00d7"}.get(mm.group(1), ""), dict(base, italic=mm.group(1) == "epsilon")))
-        elif c in "{}":
-            i += 1
-        elif c in "_^":
-            if m[i + 1] == "{":
-                arg, i = braced(m, i + 1)
-            else:
-                arg = m[i + 1]; i += 2
-            if c == "_":
-                sub = math_runs(arg, dict(base, sub=True))
-                out.extend(sub)
-            else:
-                out.append((arg, dict(base, sup=True)))
-        elif c.isalpha():
-            out.append((c, dict(base, italic=True) if not base.get("sub") else dict(base))); i += 1
-        else:
-            out.append((c, dict(base))); i += 1
-    return out
+def ref_num(label):
+    return LABELS[label]
 
 
-def inline(s, base=None):
+def sci_to_text(seg):
+    """3.11e-05 -> 3.11x10 with a superscript -5, for table cells where an equation is too wide."""
+    return SCI.sub(lambda n: f"{n.group(1)}\u00d710\\textsuperscript{{{'\u2212\u2060' if n.group(2) == '-' else ''}{n.group(3)}}}", seg)
+
+
+def inline(s, base=None, table=False):
     base = base or {}
     s = re.sub(r"\\label\{[^}]*\}", "", s)
-    s = re.sub(r"(Section|Sections|Table|Fig\.|Figure)~\\ref\{([^}]*)\}", lambda m: f"{m.group(1)} {LABELS[m.group(2)]}", s)
-    s = re.sub(r"\s*\\cite\{([^}]*)\}", lambda m: "\x01" + cite_str(m.group(1)) + "\x02", s)
+    s = re.sub(r"(Equations?|Eq\.)~\\ref\{([^}]*)\}", lambda m: f"{m.group(1)} ({ref_num(m.group(2))})", s)
+    s = re.sub(r"(Section|Sections|Table|Tables|Fig\.|Figure|Figures|Algorithm)~\\ref\{([^}]*)\}",
+               lambda m: f"{m.group(1)} {ref_num(m.group(2))}", s)
+    s = re.sub(r"~\\ref\{(eq:[^}]*)\}", lambda m: f" ({ref_num(m.group(1))})", s)
+    s = re.sub(r"~\\ref\{([^}]*)\}", lambda m: f" {ref_num(m.group(1))}", s)
+    s = re.sub(r"\s*\\cite\{([^}]*)\}", lambda m: " [" + cite_str(m.group(1)) + "]", s)
     s = re.sub(r"\\texttt\{([^}]*)\}", lambda m: m.group(1).replace("\\_", "_"), s)
-    s = s.replace("\\_", "_").replace("\\%", "%").replace("\\&", "&").replace("~", "\u00a0")
-    s = s.replace("---", "\u2014").replace("--", "\u2013")
-    s = s.replace("``", "\u201c").replace("''", "\u201d")
-    s = re.sub(r"(?<![A-Za-z0-9])`([^`']*)'", "\u2018\\1\u2019", s)
-    s = re.sub(r'"([^"]*)"', "\u201c\\1\u201d", s)
-    s = s.replace("'", "\u2019")
+    s = re.sub(r"10\\textsuperscript\{(-?\d+)\}", r"$10^{\1}$", s)
+    s = sci_to_text(s) if table else sci_to_math(s)
+    s = re.sub(r"(?<![\w$])P\(fail\)", r"$P(\\mathrm{fail})$", s)
+    parts = re.split(r"(\$[^$]*\$)", s)
+    for k in range(0, len(parts), 2):
+        t = parts[k]
+        t = t.replace("\\_", "_").replace("\\%", "%").replace("\\&", "&").replace("~", "\u00a0")
+        t = t.replace("---", "\u2014").replace("--", "\u2013")
+        t = t.replace("``", "\u201c").replace("''", "\u201d")
+        t = re.sub(r"(?<![A-Za-z0-9])`([^`']*)'", "\u2018\\1\u2019", t)
+        t = re.sub(r'"([^"]*)"', "\u201c\\1\u201d", t)
+        parts[k] = t.replace("'", "\u2019")
+    s = "".join(parts)
     runs, pos = [], 0
-    pat = re.compile(r"\\textbf\{([^}]*)\}|\\textsuperscript\{([^}]*)\}|\$([^$]*)\$|\x01([^\x02]*)\x02")
+    pat = re.compile(r"\\textbf\{([^}]*)\}|\\textit\{([^}]*)\}|\\textsuperscript\{([^}]*)\}|\$([^$]*)\$")
     for m in pat.finditer(s):
         if m.start() > pos:
             runs.append((s[pos:m.start()], dict(base)))
         if m.group(1) is not None:
             runs.append((m.group(1), dict(base, bold=True)))
         elif m.group(2) is not None:
-            runs.append((m.group(2), dict(base, sup=True)))
+            runs.append((m.group(2), dict(base, italic=True)))
         elif m.group(3) is not None:
-            runs.extend(math_runs(m.group(3), base))
+            runs.append((m.group(3), dict(base, sup=True)))
         else:
-            runs.append((m.group(4), dict(base, sup=True)))
+            runs.append(("", dict(base, math=m.group(4))))
         pos = m.end()
     if pos < len(s):
         runs.append((s[pos:], dict(base)))
     merged = []
     for t, f in runs:
-        t = re.sub(r"[ \n]+", " ", t)
-        if merged and merged[-1][1] == f:
+        if not f.get("math"):
+            t = re.sub(r"[ \n]+", " ", t)
+        if merged and merged[-1][1] == f and not f.get("math"):
             merged[-1] = (merged[-1][0] + t, f)
         else:
             merged.append((t, f))
@@ -272,7 +308,8 @@ st.font.name = FONT; st.font.size = Pt(12)
 st.element.rPr.rFonts.set(qn("w:eastAsia"), FONT)
 st.paragraph_format.line_spacing = 1.5
 st.paragraph_format.space_after = Pt(6)
-for name, size in (("Heading 1", 14), ("Heading 2", 12), ("Title", 16)):
+CAP = 12                            # caption size, same as the text
+for name, size in (("Heading 1", 12), ("Heading 2", 12), ("Title", 14)):
     h = d.styles[name]
     h.font.name = FONT; h.font.size = Pt(size); h.font.bold = True; h.font.italic = False
     h.font.color.rgb = RGBColor(0, 0, 0)
@@ -293,6 +330,9 @@ d.styles["Heading 2"].font.italic = False
 
 def add_runs(p, runs, size=None):
     for t, f in runs:
+        if f.get("math"):
+            p._p.append(omath(f["math"], size=size or 12))
+            continue
         r = p.add_run(t)
         if f.get("bold"): r.bold = True
         if f.get("italic"): r.italic = True
@@ -358,16 +398,16 @@ def parse_tabular(block):
 def add_table(block):
     cap = re.search(r"\\caption\{(.*?)\}\s*\\label\{([^}]*)\}", block, re.S)
     num = LABELS[cap.group(2)]
-    cp = d.add_paragraph(); cp.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    cp = d.add_paragraph(); cp.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
     cp.paragraph_format.keep_with_next = True; cp.paragraph_format.line_spacing = 1.15
-    r = cp.add_run(f"Table {num}. "); r.bold = True; r.font.size = Pt(10)
-    add_runs(cp, inline(cap.group(1)), size=10)
+    r = cp.add_run(f"Table {num}. "); r.bold = True; r.font.size = Pt(CAP)
+    add_runs(cp, inline(cap.group(1)), size=CAP)
     rows = parse_tabular(block)
     ncol = max(sum(c["span"] for c in r_) for r_ in rows)
     tb = d.add_table(rows=len(rows), cols=ncol)
     tb.alignment = WD_TABLE_ALIGNMENT.CENTER
     tb.autofit = True
-    size = 9 if ncol <= 6 else 8
+    size = 10 if ncol <= 6 else 9
     nhead = 2 if any(c["span"] > 1 for c in rows[0]) else 1
     numeric = re.compile(r"^[\s\d.,%()$\\a-z/<>+\-]*$")
     col_numeric = [True] * ncol
@@ -378,7 +418,33 @@ def add_table(block):
             if c["span"] == 1 and txt not in ("none", "n/a") and not re.fullmatch(r"[\d\s.,%()<>+/\-]*(e-?\d+)?[\d\s.,%()<>+/\-]*(to[\d\s.,%()e\-]*)?|\$?[\d.]+\s*\\pm\s*[\d.]+\$?|[\d/]+, ?[<\d.]+|[\d.\-]+, ?[<\d.e\-]+", txt):
                 col_numeric[cc] = False
             cc += c["span"]
+    # column widths in proportion to the widest content (longest word for text columns), so no word is split
+    def plain(t):
+        return re.sub(r"\\[a-z]+\{([^}]*)\}|[\\{}$]", r"\1", t)
+    need = [0.0] * ncol
+    for ri_, r_ in enumerate(rows):
+        cc = 0
+        for c in r_:
+            if c["span"] == 1:
+                t = plain(c["text"]).strip()
+                longest = max((len(w) for w in t.split()), default=1)
+                need[cc] = max(need[cc], longest + 1, min(len(t), 18) if ri_ >= nhead else 0)
+            cc += c["span"]
+    need = [n + 3 for n in need]          # room for the cell margins
+    tot = sum(need)
+    widths = [Inches(TEXT_W * n / tot) for n in need]
+    tb.autofit = False
+    for j, gc in enumerate(tb._tbl.tblGrid.findall(qn("w:gridCol"))):
+        gc.set(qn("w:w"), str(int(widths[j].twips)))
+    for row in tb.rows:
+        for j, cell in enumerate(row.cells):
+            cell.width = widths[j]
+    for ri in range(nhead):
+        trpr = tb.rows[ri]._tr.get_or_add_trPr()
+        trpr.append(OxmlElement("w:tblHeader"))
     for ri, row in enumerate(rows):
+        trpr = tb.rows[ri]._tr.get_or_add_trPr()
+        trpr.append(OxmlElement("w:cantSplit"))
         col = 0
         for c in row:
             cell = tb.cell(ri, col)
@@ -387,9 +453,10 @@ def add_table(block):
             cell.text = ""
             p_ = cell.paragraphs[0]
             p_.paragraph_format.line_spacing = 1.0; p_.paragraph_format.space_after = Pt(1)
-            p_.paragraph_format.keep_with_next = ri < len(rows) - 1
+            # short tables stay on one page; long ones may break, with the header repeated
+            p_.paragraph_format.keep_with_next = ri < len(rows) - 1 and (len(rows) <= 12 or ri < nhead)
             p_.alignment = WD_ALIGN_PARAGRAPH.CENTER if (c["span"] > 1 or col_numeric[col]) else WD_ALIGN_PARAGRAPH.LEFT
-            add_runs(p_, [(tx, dict(f, bold=f.get("bold") or ri < nhead)) for tx, f in inline(c["text"])], size=size)
+            add_runs(p_, [(tx, dict(f, bold=f.get("bold") or ri < nhead)) for tx, f in inline(c["text"], table=True)], size=size)
             edges = {}
             if ri == 0:
                 edges["top"] = "single"
@@ -400,10 +467,11 @@ def add_table(block):
             if edges:
                 set_cell_border(cell, **edges)
             col += c["span"]
-    d.add_paragraph().paragraph_format.space_after = Pt(2)
+    gap = d.add_paragraph(); gap.paragraph_format.space_after = Pt(0); gap.paragraph_format.line_spacing = 1.0
+    gap.add_run(" ").font.size = Pt(4)
 
 
-WIDTH = {"fig_pipeline.png": 6.2, "fig1.png": 6.0, "fig_modes.png": 6.0, "fig2.png": 6.2, "fig3.png": 4.3, "fig4.png": 4.3, "fig5.png": 4.3, "fig6.png": 6.0}
+WIDTH = {"fig_data.png": 6.2, "fig_pipeline.png": 6.2, "fig1.png": 6.0, "fig_modes.png": 6.0, "fig2.png": 6.2, "fig3.png": 4.3, "fig4.png": 4.3, "fig5.png": 4.3, "fig6.png": 6.0}
 
 
 def add_figure(block):
@@ -413,17 +481,68 @@ def add_figure(block):
     ip = d.add_paragraph(); ip.alignment = WD_ALIGN_PARAGRAPH.CENTER
     ip.paragraph_format.keep_with_next = True
     ip.add_run().add_picture(str(path), width=Inches(min(WIDTH.get(png, 5.5), TEXT_W)))
-    cp = d.add_paragraph(); cp.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY; cp.paragraph_format.line_spacing = 1.15
-    r = cp.add_run(f"Figure {LABELS[cap.group(2)]}. "); r.bold = True; r.font.size = Pt(10)
-    add_runs(cp, inline(cap.group(1)), size=10)
+    cp = d.add_paragraph(); cp.alignment = WD_ALIGN_PARAGRAPH.CENTER; cp.paragraph_format.line_spacing = 1.15
+    r = cp.add_run(f"Figure {LABELS[cap.group(2)]}. "); r.bold = True; r.font.size = Pt(CAP)
+    add_runs(cp, inline(cap.group(1)), size=CAP)
 
 
-def add_equation(block, n):
+def equation_paragraph(latex, n=None):
+    """A centered Word equation, with its number at the right margin when n is given."""
     p = d.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.LEFT
     pf = p.paragraph_format
     pf.tab_stops.add_tab_stop(Inches(TEXT_W / 2), WD_TAB_ALIGNMENT.CENTER)
     pf.tab_stops.add_tab_stop(Inches(TEXT_W), WD_TAB_ALIGNMENT.RIGHT)
-    add_runs(p, [("\t", {})] + math_runs(" ".join(block.split()).rstrip(",. "), {}) + [(f"\t({n})", {})])
+    pf.keep_with_next = True
+    p.add_run("\t")
+    p._p.append(omath(latex, size=12))
+    if n is not None:
+        p.add_run(f"\t({n})")
+    return p
+
+
+def add_equation(block, n):
+    latex = re.sub(r"\\label\{[^}]*\}", "", block)
+    equation_paragraph(" ".join(latex.split()).rstrip(",. "), n)
+
+
+def add_algorithm(block):
+    """A boxed algorithm: caption row, then numbered steps. \\EQ lines are centered equations."""
+    cap = re.search(r"\\caption\{(.*?)\}\s*\\label\{([^}]*)\}", block, re.S)
+    lines = re.findall(r"\\(REQUIRE|ENSURE|STATE|EQ|RETURN)\s+(.*?)(?=\n\s*\\(?:REQUIRE|ENSURE|STATE|EQ|RETURN)\s|\Z)",
+                       block[cap.end():].strip(), re.S)
+    tb = d.add_table(rows=2, cols=1); tb.alignment = WD_TABLE_ALIGNMENT.CENTER
+    c0, c1 = tb.cell(0, 0), tb.cell(1, 0)
+    p = c0.paragraphs[0]; p.alignment = WD_ALIGN_PARAGRAPH.LEFT; p.paragraph_format.space_after = Pt(2)
+    p.paragraph_format.keep_with_next = True
+    for row in tb.rows:
+        row._tr.get_or_add_trPr().append(OxmlElement("w:cantSplit"))
+    r = p.add_run(f"Algorithm {LABELS[cap.group(2)]}. "); r.bold = True
+    add_runs(p, [(t, dict(f, bold=True)) for t, f in inline(cap.group(1))])
+    set_cell_border(c0, top="single", bottom="single"); set_cell_border(c1, bottom="single")
+    first, step = True, 0
+    for kind, txt in lines:
+        txt = " ".join(txt.split())
+        p = c1.paragraphs[0] if first else c1.add_paragraph()
+        first = False
+        pf = p.paragraph_format; pf.line_spacing = 1.15; pf.space_after = Pt(2); pf.keep_with_next = True
+        if kind == "EQ":
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p._p.append(omath(txt, size=11))
+            continue
+        p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+        pf.left_indent = Inches(0.4); pf.first_line_indent = Inches(-0.4)
+        if kind in ("REQUIRE", "ENSURE"):
+            r = p.add_run("Input: " if kind == "REQUIRE" else "Output: "); r.bold = True
+        else:
+            step += 1
+            p.add_run(f"{step}.\t")
+            pf.tab_stops.add_tab_stop(Inches(0.4))
+            if kind == "RETURN":
+                r = p.add_run("return "); r.bold = True
+        add_runs(p, inline(txt), size=11)
+        for r_ in p.runs:
+            r_.font.size = Pt(11)
+    gap = d.add_paragraph(); gap.paragraph_format.space_after = Pt(0); gap.add_run(" ").font.size = Pt(4)
 
 
 # ── 5. references in Nature style ───────────────────────────────────────────
@@ -468,7 +587,7 @@ def ref_runs(k):
 
 
 # ── 6. body ─────────────────────────────────────────────────────────────────
-SCAN = re.compile(r"\\section(\*?)\{([^}]*)\}|\\subsection\{([^}]*)\}|\\begin\{(equation|itemize|table\*?|figure\*?)\}")
+SCAN = re.compile(r"\\section(\*?)\{([^}]*)\}|\\subsection\{([^}]*)\}|\\begin\{(equation|itemize|algorithm|table\*?|figure\*?)\}")
 eq_no = 0
 refs_done = False
 
@@ -477,10 +596,11 @@ def write_refs():
     d.add_paragraph("References", style="Heading 1")
     for k in order:
         p = d.add_paragraph()
-        p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-        p.paragraph_format.line_spacing = 1.15; p.paragraph_format.space_after = Pt(3)
-        p.paragraph_format.left_indent = Inches(0.35); p.paragraph_format.first_line_indent = Inches(-0.35)
-        add_runs(p, [(f"{CITE[k]}.\t", {})] + ref_runs(k), size=10)
+        p.alignment = WD_ALIGN_PARAGRAPH.LEFT          # justified lines with long DOIs leave wide gaps
+        p.paragraph_format.line_spacing = 1.15; p.paragraph_format.space_after = Pt(4)
+        p.paragraph_format.left_indent = Inches(0.45); p.paragraph_format.first_line_indent = Inches(-0.45)
+        p.paragraph_format.tab_stops.add_tab_stop(Inches(0.45))
+        add_runs(p, [(f"[{CITE[k]}]\t", {})] + ref_runs(k), size=12)
 
 
 def paragraphs(chunk):
@@ -530,6 +650,8 @@ while pos < len(body):
         elif env == "itemize":
             for item in re.split(r"\\item\s+", block)[1:]:
                 p = para(inline(item), style="List Bullet")
+        elif env == "algorithm":
+            add_algorithm(block)
         elif env.startswith("table"):
             add_table(block)
         else:
